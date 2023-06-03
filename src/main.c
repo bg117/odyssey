@@ -11,6 +11,7 @@
 
 #include "limine.h"
 #include "terminal.h"
+#include "pmm.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -27,10 +28,64 @@ void odyssey(struct limine_framebuffer *fb, struct limine_memmap_entry **mmap,
 
   for (size_t i = 0; i < mmap_count; i++)
   {
-    if (mmap[i]->type == LIMINE_MEMMAP_USABLE)
+    const char *type = "Usable";
+    switch (mmap[i]->type)
     {
-      terminal_printf("\t\t%016llp - %016llp (%016llp)\n", mmap[i]->base,
-                      mmap[i]->base + mmap[i]->length, mmap[i]->length);
+    case LIMINE_MEMMAP_RESERVED:
+      type = "Reserved";
+      break;
+    case LIMINE_MEMMAP_ACPI_RECLAIMABLE:
+      type = "ACPI Reclaimable";
+      break;
+    case LIMINE_MEMMAP_ACPI_NVS:
+      type = "ACPI NVS";
+      break;
+    case LIMINE_MEMMAP_BAD_MEMORY:
+      type = "Bad memory";
+      break;
+    case LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE:
+      type = "Bootloader reclaimable";
+      break;
+    case LIMINE_MEMMAP_KERNEL_AND_MODULES:
+      type = "Kernel and modules";
+      break;
     }
+
+    terminal_printf("\t%016llp - %016llp (%016llp) %s\n", mmap[i]->base,
+                    mmap[i]->base + mmap[i]->length - 1, mmap[i]->length, type);
+  }
+
+  // initialize PMM
+  pmm_init(mmap, mmap_count);
+
+  // PMM test
+  void *p1 = pmm_alloc();
+  void *p2 = pmm_alloc();
+
+  int passed = p2 == p1 + 0x1000;
+  terminal_printf("PMM test: 2: %p, 1: %p (%d)\n", p2, p1, passed);
+
+  pmm_free(p1);
+  void *p3 = pmm_alloc();
+
+  passed &= p1 == p3;
+  terminal_printf("PMM test: 1: %p, 3: %p (%d)\n", p1, p3, passed);
+
+  void *p4 = pmm_alloc();
+
+  passed &= p4 == p2 + 0x1000;
+  terminal_printf("PMM test: 4: %p, 2: %p (%d)\n", p4, p2, passed);
+
+  pmm_free(p2);
+  pmm_free(p3);
+  pmm_free(p4);
+
+  if (passed)
+  {
+    terminal_printf("PMM test passed!\n");
+  }
+  else
+  {
+    terminal_printf("PMM test failed!\n");
   }
 }
