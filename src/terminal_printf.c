@@ -27,32 +27,59 @@ int strlen(const char *str);
 #define PF_LEN_LONG 4
 #define PF_LEN_LLONG 5
 
-#define PF_FMT_RECEIVE_ARG(flen, ap, s, buf, base)            \
+#define ZERO_PAD(buf)                                          \
+    do                                                      \
+    {                                                       \
+        if (zero_pad)                                       \
+        {                                                   \
+            for (int i = 0; i < pad_len - strlen(buf); ++i) \
+            {                                               \
+                terminal_print_char('0');                   \
+            }                                               \
+        }                                                   \
+    } while (0)
+
+#define PF_FMT_RECEIVE_ARG_S(flen, ap, buf, base)            \
     switch (flen)                                             \
     {                                                         \
     case PF_LEN_SSHORT:                                       \
-        int_to_string((s char)va_arg(ap, s int), buf, base);  \
+        int_to_string((char)va_arg(ap, int), buf, base);  \
         break;                                                \
     case PF_LEN_SHORT:                                        \
-        int_to_string((s short)va_arg(ap, s int), buf, base); \
+        int_to_string((short)va_arg(ap, int), buf, base); \
         break;                                                \
     case PF_LEN_DEFAULT:                                      \
-        int_to_string(va_arg(ap, s int), buf, base);          \
+        int_to_string(va_arg(ap, int), buf, base);          \
         break;                                                \
     case PF_LEN_LONG:                                         \
-        int_to_string(va_arg(ap, s long), buf, base);         \
+        long_to_string(va_arg(ap, long), buf, base);        \
         break;                                                \
     case PF_LEN_LLONG:                                        \
-        int_to_string(va_arg(ap, s long long), buf, base);    \
+        llong_to_string(va_arg(ap, long long), buf, base);  \
         break;                                                \
     }                                                         \
-    if (zero_pad)                                             \
+    ZERO_PAD(buf)
+
+#define PF_FMT_RECEIVE_ARG_U(flen, ap, buf, base)            \
+    switch (flen)                                             \
     {                                                         \
-        for (int i = 0; i < pad_len - strlen(buf); ++i)       \
-        {                                                     \
-            terminal_print_char('0');                         \
-        }                                                     \
-    }
+    case PF_LEN_SSHORT:                                       \
+        uint_to_string((unsigned char)va_arg(ap, unsigned int), buf, base);  \
+        break;                                                \
+    case PF_LEN_SHORT:                                        \
+        uint_to_string((unsigned short)va_arg(ap, unsigned int), buf, base); \
+        break;                                                \
+    case PF_LEN_DEFAULT:                                      \
+        uint_to_string(va_arg(ap, unsigned int), buf, base);          \
+        break;                                                \
+    case PF_LEN_LONG:                                         \
+        ulong_to_string(va_arg(ap, unsigned long), buf, base);        \
+        break;                                                \
+    case PF_LEN_LLONG:                                        \
+        ullong_to_string(va_arg(ap, unsigned long long), buf, base);  \
+        break;                                                \
+    }                                                         \
+    ZERO_PAD(buf)
 
 void terminal_printf(const char *fmt, ...)
 {
@@ -133,7 +160,7 @@ void terminal_printf(const char *fmt, ...)
             {
                 char num[32];
 
-                PF_FMT_RECEIVE_ARG(flen, ap, signed, num, 10);
+                PF_FMT_RECEIVE_ARG_S(flen, ap, num, 10);
                 terminal_print_string(num);
             }
             break;
@@ -142,7 +169,7 @@ void terminal_printf(const char *fmt, ...)
             {
                 char num[32];
 
-                PF_FMT_RECEIVE_ARG(flen, ap, unsigned, num, 10);
+                PF_FMT_RECEIVE_ARG_U(flen, ap, num, 10);
                 terminal_print_string(num);
             }
             break;
@@ -151,7 +178,7 @@ void terminal_printf(const char *fmt, ...)
             {
                 char num[32];
 
-                PF_FMT_RECEIVE_ARG(flen, ap, unsigned, num, 16);
+                PF_FMT_RECEIVE_ARG_U(flen, ap, num, 16);
                 terminal_print_string(num);
             }
             break;
@@ -160,7 +187,7 @@ void terminal_printf(const char *fmt, ...)
             {
                 char num[32];
 
-                PF_FMT_RECEIVE_ARG(flen, ap, unsigned, num, 16);
+                PF_FMT_RECEIVE_ARG_U(flen, ap, num, 16);
                 terminal_print_string(fmtupr(num));
             }
             break;
@@ -170,15 +197,16 @@ void terminal_printf(const char *fmt, ...)
                 char num[32];
 
                 terminal_print_string("0x");
-                PF_FMT_RECEIVE_ARG(flen, ap, unsigned, num, 16);
+                PF_FMT_RECEIVE_ARG_U(flen, ap, num, 16);
                 terminal_print_string(num);
             }
+            break;
 
             case 'o':
             {
                 char num[32];
 
-                PF_FMT_RECEIVE_ARG(flen, ap, unsigned, num, 16);
+                PF_FMT_RECEIVE_ARG_U(flen, ap, num, 16);
                 terminal_print_string(num);
             }
             break;
