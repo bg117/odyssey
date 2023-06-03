@@ -1,0 +1,23 @@
+﻿---
+BasedOnStyle: Microsoft
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: 'true'
+AlignEscapedNewlines: Left
+AlignOperands: 'true'
+AlignTrailingComments: 'true'
+AllowAllArgumentsOnNextLine: 'false'
+AllowAllParametersOfDeclarationOnNextLine: 'false'
+AllowShortBlocksOnASingleLine: 'false'
+AllowShortCaseLabelsOnASingleLine: 'false'
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: 'false'
+BreakStringLiterals: 'true'
+ColumnLimit: '80'
+IncludeBlocks: Regroup
+IndentCaseLabels: 'false'
+IndentPPDirectives: AfterHash
+IndentWidth: '2'
+PointerAlignment: Right
+
+...

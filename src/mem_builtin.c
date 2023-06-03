@@ -17,54 +17,54 @@
 
 void *memcpy(void *dest, const void *src, size_t n)
 {
-    uint8_t *pdest = dest;
-    const uint8_t *psrc = src;
+  uint8_t *pdest      = dest;
+  const uint8_t *psrc = src;
 
-    for (size_t i = 0; i < n; i++)
-    {
-        pdest[i] = psrc[i];
-    }
+  for (size_t i = 0; i < n; i++)
+  {
+    pdest[i] = psrc[i];
+  }
 
-    return dest;
+  return dest;
 }
 
 void *memmove(void *dest, const void *src, size_t n)
 {
-    uint8_t *pdest = dest;
-    const uint8_t *psrc = src;
+  uint8_t *pdest      = dest;
+  const uint8_t *psrc = src;
 
-    if (src > dest)
+  if (src > dest)
+  {
+    memcpy(dest, src, n);
+  }
+  else if (src < dest)
+  {
+    // copy backwards if dest is higher than src
+    for (size_t i = n - 1; i >= 0; i--)
     {
-        memcpy(dest, src, n);
+      pdest[i] = psrc[i];
     }
-    else if (src < dest)
-    {
-        // copy backwards if dest is higher than src
-        for (size_t i = n - 1; i >= 0; i--)
-        {
-            pdest[i] = psrc[i];
-        }
-    }
+  }
 
-    return dest;
+  return dest;
 }
 
 int memcmp(const void *s1, const void *s2, size_t n)
 {
-    const uint8_t *p1 = s1;
-    const uint8_t *p2 = s2;
+  const uint8_t *p1 = s1;
+  const uint8_t *p2 = s2;
 
-    for (size_t i = 0; i < n; i++)
+  for (size_t i = 0; i < n; i++)
+  {
+    if (p1[i] < p2[i])
     {
-        if (p1[i] < p2[i])
-        {
-            return -1;
-        }
-        else if (p1[i] > p2[i])
-        {
-            return 1;
-        }
+      return -1;
     }
+    else if (p1[i] > p2[i])
+    {
+      return 1;
+    }
+  }
 
-    return 0;
+  return 0;
 }
