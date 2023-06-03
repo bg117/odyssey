@@ -63,18 +63,18 @@ void odyssey(struct limine_framebuffer *fb, struct limine_memmap_entry **mmap,
   void *p2 = pmm_alloc();
 
   int passed = p2 == p1 + 0x1000;
-  terminal_printf("PMM test: 2: %p, 1: %p (%d)\n", p2, p1, passed);
+  terminal_printf("PMM test: 2: %016llp, 1: %016llp (%d)\n", p2, p1, passed);
 
   pmm_free(p1);
   void *p3 = pmm_alloc();
 
   passed &= p1 == p3;
-  terminal_printf("PMM test: 1: %p, 3: %p (%d)\n", p1, p3, passed);
+  terminal_printf("PMM test: 1: %016llp, 3: %016llp (%d)\n", p1, p3, passed);
 
   void *p4 = pmm_alloc();
 
   passed &= p4 == p2 + 0x1000;
-  terminal_printf("PMM test: 4: %p, 2: %p (%d)\n", p4, p2, passed);
+  terminal_printf("PMM test: 4: %016llp, 2: %016llp (%d)\n", p4, p2, passed);
 
   pmm_free(p2);
   pmm_free(p3);
