@@ -68,3 +68,15 @@ int memcmp(const void *s1, const void *s2, size_t n)
 
   return 0;
 }
+
+void *memset(void *s, int c, size_t n)
+{
+  uint8_t *ps = s;
+
+  for (size_t i = 0; i < n; i++)
+  {
+    ps[i] = c;
+  }
+
+  return s;
+}
