@@ -53,7 +53,7 @@ void pmm_init(struct limine_memmap_entry **mmap, size_t mmap_count)
   free_limit = free_len / PMM_PAGE_SIZE;
 
   // get amount of pages needed for the bitmap
-  uint64_t bitmap_size = ((top_address - free_base) / 8 + PMM_PAGE_SIZE - 1) &
+  uint64_t bitmap_size = ((top_address - free_base) / 4096 / 8 + PMM_PAGE_SIZE - 1) &
                          ~(PMM_PAGE_SIZE - 1);
 
   // find a large enough free area for the bitmap that doesn't overlap with
