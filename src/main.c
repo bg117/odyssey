@@ -21,7 +21,7 @@
 
 #define LOG(s, ...) \
   terminal_printf("[%s:%d]: " s "\n", __FILE__, __LINE__, ##__VA_ARGS__)
-#define FONT(s) _binary_src_##s##_psf_start
+#define FONT(s) _binary_fonts_##s##_psf_start
 
 struct gdt gdt[] = {
     {0, 0, 0, 0, 0, 0, 0},

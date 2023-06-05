@@ -32,7 +32,7 @@ CC := clang
 LD := clang
 
 SRCS := $(wildcard src/*.c)
-FONTS := $(wildcard src/*.psf)
+FONTS := $(wildcard fonts/*.psf)
 OBJS := $(SRCS:.c=.o) $(FONTS:.psf=.o)
 DEPS := $(SRCS:.c=.d)
 
@@ -56,5 +56,5 @@ $(KERNEL): $(OBJS)
 src/%.o: src/%.c
 	$(CC) $< $(CFLAGS) $(CPPFLAGS) -c -o $@
 
-src/%.o: src/%.psf
+fonts/%.o: fonts/%.psf
 	objcopy -O elf64-x86-64 -I binary $< $@
