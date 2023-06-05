@@ -13,8 +13,15 @@
 
 #include <stddef.h>
 
-void odyssey(struct limine_framebuffer *fb, struct limine_memmap_entry **mmap,
-             uint64_t mmap_count, uint64_t hh_offset);
+/* extern */
+uint64_t KERNEL_PHYS;
+uint64_t KERNEL_SIZE;
+struct limine_framebuffer *FRAMEBUFFER;
+uint64_t HIGHER_HALF_START;
+struct limine_memmap_entry **MEMMAP;
+uint64_t MEMMAP_COUNT;
+
+void odyssey(void);
 
 static volatile struct limine_framebuffer_request fb_request = {
     LIMINE_FRAMEBUFFER_REQUEST, 0};
@@ -41,10 +48,28 @@ __attribute__((noreturn)) void _start(void)
   }
 
   // get framebuffer from response
-  struct limine_framebuffer *fb = fb_request.response->framebuffers[0];
+  FRAMEBUFFER = fb_request.response->framebuffers[0];
+
+  // get higher half start from response
+  HIGHER_HALF_START = hhdm_request.response->offset;
+
+  // get memory map from response
+  MEMMAP       = mmap_request.response->entries;
+  MEMMAP_COUNT = mmap_request.response->entry_count;
+
+  // get start of kernel
+  for (uint64_t i = 0; i < MEMMAP_COUNT; i++)
+  {
+    if (MEMMAP[i]->type == LIMINE_MEMMAP_KERNEL_AND_MODULES)
+    {
+      KERNEL_PHYS = MEMMAP[i]->base;
+      KERNEL_SIZE = MEMMAP[i]->length;
+      break;
+    }
+  }
+
   // call init
-  odyssey(fb, mmap_request.response->entries,
-          mmap_request.response->entry_count, hhdm_request.response->offset);
+  odyssey();
 
   // die
   halt();

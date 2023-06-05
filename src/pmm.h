@@ -23,11 +23,8 @@
  *
  * This function initializes the physical memory manager. It should be called
  * before any other functions in this file are called.
- *
- * @param mmap The memory map to use for the physical memory manager.
- * @param mmap_count The number of entries in the memory map.
  */
-void pmm_init(struct limine_memmap_entry **mmap, size_t mmap_count);
+void pmm_init(void);
 
 void *pmm_alloc(void);
 void pmm_free(void *ptr);

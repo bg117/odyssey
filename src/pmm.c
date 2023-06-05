@@ -23,26 +23,29 @@ uint64_t free_len;
 uint64_t free_amount;
 uint64_t free_limit;
 
-void pmm_init(struct limine_memmap_entry **mmap, size_t mmap_count)
+extern struct limine_memmap_entry **MEMMAP;
+extern uint64_t MEMMAP_COUNT;
+
+void pmm_init(void)
 {
   free_base = 0;
   free_len  = 0;
 
-  for (size_t i = 0; i < mmap_count; i++)
+  for (size_t i = 0; i < MEMMAP_COUNT; i++)
   {
     // skip non-usable memory
-    if (mmap[i]->type != LIMINE_MEMMAP_USABLE)
+    if (MEMMAP[i]->type != LIMINE_MEMMAP_USABLE)
     {
       continue;
     }
 
     if (free_base == 0)
     {
-      free_base = mmap[i]->base;
+      free_base = MEMMAP[i]->base;
     }
 
-    uint64_t top = mmap[i]->base + mmap[i]->length;
-    free_len += mmap[i]->length;
+    uint64_t top = MEMMAP[i]->base + MEMMAP[i]->length;
+    free_len += MEMMAP[i]->length;
 
     if (top > top_address)
     {
@@ -56,18 +59,18 @@ void pmm_init(struct limine_memmap_entry **mmap, size_t mmap_count)
 
   // find a large enough free area for the bitmap that doesn't overlap with
   // anything
-  for (size_t i = 0; i < mmap_count; i++)
+  for (size_t i = 0; i < MEMMAP_COUNT; i++)
   {
     // skip non-usable memory
-    if (mmap[i]->type != LIMINE_MEMMAP_USABLE)
+    if (MEMMAP[i]->type != LIMINE_MEMMAP_USABLE)
     {
       continue;
     }
 
     // check if the memory overlaps with the bitmap
-    if (mmap[i]->length >= bitmap_size)
+    if (MEMMAP[i]->length >= bitmap_size)
     {
-      bitmap = (uint64_t *)mmap[i]->base;
+      bitmap = (uint64_t *)MEMMAP[i]->base;
       break;
     }
   }
@@ -77,19 +80,19 @@ void pmm_init(struct limine_memmap_entry **mmap, size_t mmap_count)
   free_amount = 0;
 
   // iterate over the memory map again to set the usable pages as free
-  for (size_t i = 0; i < mmap_count; i++)
+  for (size_t i = 0; i < MEMMAP_COUNT; i++)
   {
     // skip non-usable memory
-    if (mmap[i]->type != LIMINE_MEMMAP_USABLE)
+    if (MEMMAP[i]->type != LIMINE_MEMMAP_USABLE)
     {
       continue;
     }
 
     // iterate through the pages
-    for (uint64_t j = 0; j < mmap[i]->length / PMM_PAGE_SIZE; j++)
+    for (uint64_t j = 0; j < MEMMAP[i]->length / PMM_PAGE_SIZE; j++)
     {
       // get the address of the page
-      uint64_t addr = mmap[i]->base + j * PMM_PAGE_SIZE;
+      uint64_t addr = MEMMAP[i]->base + j * PMM_PAGE_SIZE;
 
       // get the index of the page
       uint64_t idx = (addr - free_base) / PMM_PAGE_SIZE;

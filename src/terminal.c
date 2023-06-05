@@ -19,22 +19,22 @@
 static unsigned int TERM_WIDTH;
 static unsigned int TERM_HEIGHT;
 
-static struct limine_framebuffer *term;
+extern struct limine_framebuffer *FRAMEBUFFER;
+
 static struct psf_header *font;
 
 static unsigned int current_x = 0;
 static unsigned int current_y = 0;
 
-void terminal_init(struct limine_framebuffer *fb, void *font_addr)
+void terminal_init(void *font_addr)
 {
-  term = fb;
   font = (struct psf_header *)font_addr;
 
   current_x = 0;
   current_y = 0;
 
-  TERM_WIDTH  = term->width / font->width;
-  TERM_HEIGHT = term->height / font->height;
+  TERM_WIDTH  = FRAMEBUFFER->width / font->width;
+  TERM_HEIGHT = FRAMEBUFFER->height / font->height;
 }
 
 void terminal_print_char(char c)
@@ -85,7 +85,7 @@ void terminal_print_char(char c)
   // get glyph data
   uint8_t *glyph = (uint8_t *)font + glyph_offset;
   int off =
-      current_y * font->height * term->pitch + current_x * font->width * 4;
+      current_y * font->height * FRAMEBUFFER->pitch + current_x * font->width * 4;
   int line;
 
   for (uint32_t y = 0; y < font->height; y++)
@@ -95,13 +95,13 @@ void terminal_print_char(char c)
     for (uint32_t x = 0; x < font->width; x++)
     {
       // set pixel; 0xFFFFFF for white, 0x000000 for black
-      *(uint32_t *)(term->address + line) =
+      *(uint32_t *)(FRAMEBUFFER->address + line) =
           glyph[x / 8] & (0x80 >> (x & 7)) ? 0xffffff : 0x000000;
       line += 4;
     }
 
     glyph += bytes_per_row;
-    off += term->pitch;
+    off += FRAMEBUFFER->pitch;
   }
 
   current_x += 1;

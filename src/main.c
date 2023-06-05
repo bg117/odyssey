@@ -37,12 +37,17 @@ struct gdt gdt[] = {
 struct gdtr gdtr;
 
 extern char TERM_FONT;
+extern uint64_t KERNEL_PHYS;
+extern uint64_t KERNEL_SIZE;
 
-void odyssey(struct limine_framebuffer *fb, struct limine_memmap_entry **mmap,
-             uint64_t mmap_count, uint64_t hh_offset)
+void odyssey(void)
 {
   // initialize terminal
-  terminal_init(fb, &TERM_FONT);
+  terminal_init(&TERM_FONT);
+
+  // print kernel location from memory map
+  LOG("Kernel location: %016llp - %016llp (%llp bytes)", KERNEL_PHYS,
+      KERNEL_PHYS + KERNEL_SIZE, KERNEL_SIZE);
 
   // initialize GDT
   LOG("Initializing GDT...");
@@ -51,5 +56,5 @@ void odyssey(struct limine_framebuffer *fb, struct limine_memmap_entry **mmap,
 
   // initialize PMM
   LOG("Initializing PMM...");
-  pmm_init(mmap, mmap_count);
+  pmm_init();
 }

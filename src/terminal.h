@@ -15,10 +15,9 @@
 /**
  * @brief Initialize the terminal with the given framebuffer.
  *
- * @param fb The framebuffer to use.
  * @param font_addr The address of the font (in PSF2 format) to use.
  */
-void terminal_init(struct limine_framebuffer *fb, void *font_addr);
+void terminal_init(void *font_addr);
 
 /**
  * @brief Print a character to the terminal.
