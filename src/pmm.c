@@ -50,8 +50,6 @@ void pmm_init(struct limine_memmap_entry **mmap, size_t mmap_count)
     }
   }
 
-  free_limit = free_len / PMM_PAGE_SIZE;
-
   // get amount of pages needed for the bitmap
   uint64_t bitmap_size = ((top_address - free_base) / 4096 / 8 + PMM_PAGE_SIZE - 1) &
                          ~(PMM_PAGE_SIZE - 1);
@@ -113,19 +111,7 @@ void pmm_init(struct limine_memmap_entry **mmap, size_t mmap_count)
   }
 
   free_amount -= bitmap_pages;
-
-// print statistics
-#if 1
-  terminal_printf("PMM: %u pages free\n", free_amount);
-  terminal_printf("PMM: %u pages used\n", free_limit - free_amount);
-  terminal_printf("PMM: %u pages total\n", free_limit);
-  terminal_printf("PMM: bitmap size: %llu pages, %llu bytes\n", bitmap_pages,
-                  bitmap_size);
-  terminal_printf("PMM: bitmap address: %llp\n", bitmap);
-  terminal_printf("PMM: free base: %llp\n", free_base);
-  terminal_printf("PMM: free len: %llp\n", free_len);
-  terminal_printf("PMM: top address: %llp\n", top_address);
-#endif
+  free_limit = free_amount;
 }
 
 void *pmm_alloc(void)
