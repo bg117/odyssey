@@ -16,21 +16,19 @@
 #include <stddef.h>
 
 // 10x20 font
-static int TERM_WIDTH;
-static int TERM_HEIGHT;
+static unsigned int TERM_WIDTH;
+static unsigned int TERM_HEIGHT;
 
 static struct limine_framebuffer *term;
 static struct psf_header *font;
 
-static int current_x = 0, current_y = 0;
+static unsigned int current_x = 0;
+static unsigned int current_y = 0;
 
-// embedded font
-extern char _binary_src_10x20_psf_start, _binary_src_10x20_psf_end;
-
-void terminal_init(struct limine_framebuffer *fb)
+void terminal_init(struct limine_framebuffer *fb, void *font_addr)
 {
   term = fb;
-  font = &_binary_src_10x20_psf_start;
+  font = (struct psf_header *)font_addr;
 
   current_x = 0;
   current_y = 0;
@@ -79,26 +77,26 @@ void terminal_print_char(char c)
   }
 
   // get bytes per row
-  size_t bytes_per_row = ((font->width + 7) & ~7) / 8;
+  uint32_t bytes_per_row = ((font->width + 7) & ~7) / 8;
 
   // get glyph offset
-  size_t glyph_offset = font->header_size + c * font->bytes_per_glyph;
+  uint64_t glyph_offset = font->header_size + c * font->bytes_per_glyph;
 
   // get glyph data
-  uint8_t *glyph = (uint8_t *)&_binary_src_10x20_psf_start + glyph_offset;
+  uint8_t *glyph = (uint8_t *)font + glyph_offset;
   int off =
       current_y * font->height * term->pitch + current_x * font->width * 4;
   int line;
 
-  for (int y = 0; y < font->height; y++)
+  for (uint32_t y = 0; y < font->height; y++)
   {
     line = off;
 
-    for (int x = 0; x < font->width; x++)
+    for (uint32_t x = 0; x < font->width; x++)
     {
       // set pixel; 0xFFFFFF for white, 0x000000 for black
       *(uint32_t *)(term->address + line) =
-          glyph[x / 8] & (0x80 >> (x & 7)) ? 0xFFFFFF : 0x000000;
+          glyph[x / 8] & (0x80 >> (x & 7)) ? 0xffffff : 0x000000;
       line += 4;
     }
 

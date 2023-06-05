@@ -32,7 +32,8 @@ CC := clang
 LD := clang
 
 SRCS := $(wildcard src/*.c)
-OBJS := $(SRCS:.c=.o)
+FONTS := $(wildcard src/*.psf)
+OBJS := $(SRCS:.c=.o) $(FONTS:.psf=.o)
 DEPS := $(SRCS:.c=.d)
 
 .PHONY: all hdd-img kernel clean
@@ -45,13 +46,15 @@ hdd-img:
 kernel: $(KERNEL)
 
 clean:
-	rm -rf $(KERNEL) $(OBJS) src/10x20.o $(DEPS) $(KERNEL).img
+	rm -rf $(KERNEL) $(OBJS) $(DEPS) $(KERNEL).img
 
 $(KERNEL): $(OBJS)
-	objcopy -O elf64-x86-64 -I binary src/10x20.psf src/10x20.o
-	$(LD) $^ src/10x20.o $(LDFLAGS) -o $@
+	$(LD) $^ $(LDFLAGS) -o $@
 
 -include $(DEPS)
 
 src/%.o: src/%.c
 	$(CC) $< $(CFLAGS) $(CPPFLAGS) -c -o $@
+
+src/%.o: src/%.psf
+	objcopy -O elf64-x86-64 -I binary $< $@
