@@ -1,21 +1,5 @@
 #include "gdt.h"
 
-struct gdt gdt_make_entry(uint32_t base, uint32_t limit, uint8_t access,
-                          uint8_t flags)
-{
-  struct gdt entry = {
-      .limit_low   = limit & 0xFFFF,
-      .base_low    = base & 0xFFFF,
-      .base_middle = (base >> 16) & 0xFF,
-      .access      = access,
-      .limit_high  = (limit >> 16) & 0xF,
-      .flags       = flags,
-      .base_high   = (base >> 24) & 0xFF,
-  };
-
-  return entry;
-}
-
 void gdt_make_descriptor(struct gdtr *gdtr, struct gdt *gdt, uint16_t size)
 {
   gdtr->limit = sizeof(struct gdt) * size - 1;

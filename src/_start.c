@@ -14,7 +14,7 @@
 #include <stddef.h>
 
 void odyssey(struct limine_framebuffer *fb, struct limine_memmap_entry **mmap,
-             size_t mmap_count, uint64_t hh_offset);
+             uint64_t mmap_count, uint64_t hh_offset);
 
 static volatile struct limine_framebuffer_request fb_request = {
     LIMINE_FRAMEBUFFER_REQUEST, 0};

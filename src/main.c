@@ -17,6 +17,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define LOG(s, ...) \
+  terminal_printf("[%s:%d]: " s "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+
 struct gdt gdt[] = {
     {0, 0, 0, 0, 0, 0, 0},
     {0xffff, 0, 0, 0x9a, 0, 0x8, 0},
@@ -31,16 +34,17 @@ struct gdt gdt[] = {
 struct gdtr gdtr;
 
 void odyssey(struct limine_framebuffer *fb, struct limine_memmap_entry **mmap,
-             size_t mmap_count, uint64_t hh_offset)
+             uint64_t mmap_count, uint64_t hh_offset)
 {
+  // initialize terminal
   terminal_init(fb);
-  terminal_printf("Initializing Odyssey kernel...\n");
-  terminal_printf("==============================\n");
 
   // initialize GDT
+  LOG("Initializing GDT...");
   gdt_make_descriptor(&gdtr, gdt, sizeof(gdt) / sizeof(struct gdt));
   gdt_load(&gdtr, 0x28, 0x30);
 
   // initialize PMM
+  LOG("Initializing PMM...");
   pmm_init(mmap, mmap_count);
 }

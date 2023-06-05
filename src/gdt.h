@@ -35,8 +35,22 @@ struct gdtr
   uint64_t base;
 } __attribute__((packed));
 
+/**
+ * @brief Initialize a GDT descriptor using the given values.
+ * 
+ * @param gdtr The address of the GDT descriptor structure.
+ * @param gdt An array of GDT entries, starting with an empty entry at index 0.
+ * @param size The size of the GDT entry array.
+ */
+void gdt_make_descriptor(struct gdtr *gdtr, struct gdt *gdt, uint16_t size);
 
-
+/**
+ * @brief Load the GDT descriptor into the GDTR register.
+ * 
+ * @param gdtr The address of the GDT descriptor structure.
+ * @param code_selector The offset to the code segment in the GDT.
+ * @param data_selector The offset to the data segment in the GDT.
+ */
 void gdt_load(struct gdtr *gdtr, uint16_t code_selector, uint16_t data_selector);
 
 #endif
