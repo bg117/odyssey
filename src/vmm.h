@@ -28,8 +28,7 @@ struct page_table_entry
     PT_HUGE           = 1 << 7,
     PT_GLOBAL         = 1 << 8,
   } flags : 9;
-  uint8_t used : 1;
-  uint8_t available_0 : 2;
+  uint8_t available_0 : 3;
   uint64_t base_addr : 40; // do not store lower 12 bits (all 0)
   uint16_t available_1 : 11;
   uint8_t no_execute : 1;

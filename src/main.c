@@ -14,6 +14,7 @@
 #include "gdt.h"
 #include "limine.h"
 #include "pmm.h"
+#include "vmm.h"
 #include "terminal.h"
 
 #include <stddef.h>
@@ -57,4 +58,8 @@ void odyssey(void)
   // initialize PMM
   LOG("Initializing PMM...");
   pmm_init();
+
+  // initialize VMM
+  LOG("Initializing VMM...");
+  vmm_init();
 }
