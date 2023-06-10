@@ -9,6 +9,7 @@
  */
 
 #include "terminal.h"
+#include "log.h"
 
 #include "psf.h"
 
@@ -35,6 +36,8 @@ void terminal_init(void *font_addr)
 
   TERM_WIDTH  = FRAMEBUFFER->width / font->width;
   TERM_HEIGHT = FRAMEBUFFER->height / font->height;
+
+  LOG("Framebuffer address: %llp", FRAMEBUFFER);
 }
 
 void terminal_print_char(char c)

@@ -14,7 +14,8 @@ CFLAGS := \
 	-march=x86-64 \
 	-mabi=sysv \
 	-mno-red-zone \
-	-mcmodel=kernel
+	-mcmodel=kernel \
+	-g
 
 CPPFLAGS := \
 	-MMD

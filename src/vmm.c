@@ -3,111 +3,127 @@
 #include "pmm.h"
 #include "terminal.h"
 
+#include <stdbool.h>
+
 #define PAGE_SIZE 0x1000
+#define REC_PM 510
 
 #define PML4_OFFSET(x) (((x) >> 39) & 0x1ff)
 #define PDPT_OFFSET(x) (((x) >> 30) & 0x1ff)
 #define PD_OFFSET(x) (((x) >> 21) & 0x1ff)
 #define PT_OFFSET(x) (((x) >> 12) & 0x1ff)
 
-#define KERNEL_START 0xffffffff80000000
+#define TABLE(pml4, pdpt, pd, pt)                                 \
+  ((void *)(((uint64_t)(pml4) << 39) | ((uint64_t)(pdpt) << 30) | \
+            ((uint64_t)(pd) << 21) | ((uint64_t)(pt) << 12)))
 
-static struct page_table_entry *pml4;
+// check if PT is present; if not, allocate new page and set PT entry as present
+#define ALLOCATE_PT(pt)                              \
+  do                                                 \
+  {                                                  \
+    if (!((pt)->flags & PT_PRESENT))                \
+    {                                                \
+      (pt)->flags     = PT_PRESENT | PT_WRITABLE;    \
+      (pt)->base_addr = (uint64_t)pmm_alloc() >> 12; \
+    }                                                \
+  } while (0)
 
-extern uint64_t HIGHER_HALF_START;
-extern struct limine_memmap_entry **MEMMAP;
-extern uint64_t MEMMAP_COUNT;
-extern uint64_t KERNEL_PHYS;
+#define RECURSIVE 510 // index 511 where the PML4 recurses into itself
+#define KERNEL_HIGHER_HALF 0xffffffff80000000
+
+static struct page_table_entry *PML4;
+static bool initialized;
+
+extern uint64_t KERNEL_PHYS, KERNEL_SIZE, FRAMEBUFFER_SIZE, HIGHER_HALF_START;
+extern struct limine_framebuffer *FRAMEBUFFER;
 
 void map_page(uint64_t phys, uint64_t virt);
 
 void vmm_init()
 {
-  terminal_printf("KERNEL_PHYS: %016llp\n", KERNEL_PHYS);
-  pml4 = pmm_alloc() + HIGHER_HALF_START;
+  initialized = false;
 
-  // map usable memory into HIGHER_HALF_START + offset
-  for (uint64_t i = 0; i < MEMMAP_COUNT; i++)
+  PML4                = pmm_alloc(); // allocate a brand new page for PML4
+  PML4[510].flags     = PT_PRESENT | PT_WRITABLE;
+  PML4[510].base_addr = (uint64_t)PML4 >> 12;
+
+  const uint64_t rounded_kernel_size =
+      (KERNEL_SIZE + PAGE_SIZE - 1) &
+      -PAGE_SIZE; // -PAGE_SIZE is equivalent to ~(PAGE_SIZE - 1)
+  const uint64_t rounded_fb_size =
+      (FRAMEBUFFER_SIZE + PAGE_SIZE - 1) & -PAGE_SIZE;
+
+  struct page_table_entry *pml4e, *pdpte, *pde, *pte;
+
+  // map each kernel page into directory
+  for (uint64_t b = 0; b < rounded_kernel_size; b += PAGE_SIZE)
   {
-    // if (MEMMAP[i]->type == LIMINE_MEMMAP_USABLE)
-    // {
-    //   // guaranteed to be page aligned
-    //   uint64_t base   = MEMMAP[i]->base;
-    //   uint64_t length = MEMMAP[i]->length;
+    const uint64_t offset = KERNEL_HIGHER_HALF + b;
 
-    //   // map the page
-    //   for (uint64_t j = 0; j < length; j += PAGE_SIZE)
-    //   {
-    //     map_page(base + j, HIGHER_HALF_START + base + j);
-    //   }
-    // }
+    pml4e = &PML4[PML4_OFFSET(offset)];
+    ALLOCATE_PT(pml4e);
 
-    // if kernel/modules, map them into the higher half
-    if (MEMMAP[i]->type == LIMINE_MEMMAP_KERNEL_AND_MODULES)
-    {
-      // guaranteed to be page aligned
-      uint64_t base   = MEMMAP[i]->base;
-      uint64_t length = MEMMAP[i]->length;
+    pdpte = &((struct page_table_entry *)(pml4e->base_addr
+                                          << 12))[PDPT_OFFSET(offset)];
+    ALLOCATE_PT(pdpte);
 
-      // map the page
-      for (uint64_t j = 0; j < length; j += PAGE_SIZE)
-      {
-        map_page(base + j, HIGHER_HALF_START + base + j);
-      }
-    }
+    pde = &(
+        (struct page_table_entry *)(pdpte->base_addr << 12))[PD_OFFSET(offset)];
+    ALLOCATE_PT(pde);
+
+    pte =
+        &((struct page_table_entry *)(pde->base_addr << 12))[PT_OFFSET(offset)];
+
+    pte->flags     = PT_PRESENT | PT_WRITABLE;
+    pte->base_addr = (KERNEL_PHYS + b)
+                     >> 12; // physical address of kernel + page offset
   }
+
+  // map framebuffer into higher half
+  for (uint64_t b = 0; b < rounded_fb_size; b += PAGE_SIZE)
+  {
+    const uint64_t offset = (uint64_t)FRAMEBUFFER + b;
+
+    pml4e = &PML4[PML4_OFFSET(offset)];
+    ALLOCATE_PT(pml4e);
+
+    pdpte = &((struct page_table_entry *)(pml4e->base_addr
+                                          << 12))[PDPT_OFFSET(offset)];
+    ALLOCATE_PT(pdpte);
+
+    pde = &(
+        (struct page_table_entry *)(pdpte->base_addr << 12))[PD_OFFSET(offset)];
+    ALLOCATE_PT(pde);
+
+    pte =
+        &((struct page_table_entry *)(pde->base_addr << 12))[PT_OFFSET(offset)];
+
+    pte->flags     = PT_PRESENT | PT_WRITABLE;
+    pte->base_addr = ((uint64_t)FRAMEBUFFER - HIGHER_HALF_START + b)
+                     >> 12; // physical address of framebuffer + page offset
+  }
+
+  initialized = true;
+
+  // LOAD LEVEL 4 PAGE TABLE!!!!
+  asm volatile("mov %0, %%cr3" ::"r"(PML4));
 }
 
 void map_page(uint64_t phys, uint64_t virt)
 {
-  uint64_t pml4_offset = PML4_OFFSET(virt);
-  uint64_t pdpt_offset = PDPT_OFFSET(virt);
-  uint64_t pd_offset   = PD_OFFSET(virt);
-  uint64_t pt_offset   = PT_OFFSET(virt);
+  struct page_table_entry *pdpt = TABLE(RECURSIVE, RECURSIVE, RECURSIVE,
+                                        PML4_OFFSET(virt)),
+                          *pd   = TABLE(RECURSIVE, RECURSIVE, PML4_OFFSET(virt),
+                                        PDPT_OFFSET(virt)),
+                          *pt   = TABLE(RECURSIVE, PML4_OFFSET(virt),
+                                        PDPT_OFFSET(virt), PD_OFFSET(virt));
 
-  // if the pml4 entry is not present, allocate a new pdpt
-  if (!(pml4[pml4_offset].flags & PT_PRESENT))
-  {
-    // allocate a new pdpt
-    uint64_t pdpt_phys = (uint64_t)pmm_alloc();
-    // set the pml4 entry
-    pml4[pml4_offset].flags     = PT_PRESENT | PT_WRITABLE;
-    pml4[pml4_offset].base_addr = pdpt_phys;
-  }
+  // check if each level is present
+  ALLOCATE_PT(pdpt);
+  ALLOCATE_PT(pd);
+  ALLOCATE_PT(pt);
 
-  // if pdpt entry is not present, allocate a new pd
-  struct page_table_entry *pdpt_entry =
-      &((struct page_table_entry *)HIGHER_HALF_START +
-        pml4[pml4_offset].base_addr)[pdpt_offset];
-  if (!(pdpt_entry->flags & PT_PRESENT))
-  {
-    // allocate a new pd
-    uint64_t pd_phys = (uint64_t)pmm_alloc();
-    // set the pdpt entry
-    pdpt_entry->flags     = PT_PRESENT | PT_WRITABLE;
-    pdpt_entry->base_addr = pd_phys;
-  }
-
-  // if pd entry is not present, allocate a new pt
-  struct page_table_entry *pd_entry =
-      &((struct page_table_entry *)HIGHER_HALF_START +
-        pdpt_entry->base_addr)[pd_offset];
-  if (!(pd_entry->flags & PT_PRESENT))
-  {
-    // allocate a new pt
-    uint64_t pt_phys = (uint64_t)pmm_alloc();
-    // set the pd entry
-    pd_entry->flags     = PT_PRESENT | PT_WRITABLE;
-    pd_entry->base_addr = pt_phys;
-  }
-
-  // set the pt entry
-  struct page_table_entry *pt_entry =
-      &((struct page_table_entry *)HIGHER_HALF_START +
-        pd_entry->base_addr)[pt_offset];
-  pt_entry->flags     = PT_PRESENT | PT_WRITABLE;
-  pt_entry->base_addr = phys;
-
-  terminal_printf("PML4: %llu, PDPT: %llu, PD: %llu, PT: %llu\n", pml4_offset,
-                  pdpt_offset, pd_offset, pt_offset);
+  // set page frame address in level 1 page table
+  pt[PT_OFFSET(virt)].flags     = PT_PRESENT | PT_WRITABLE;
+  pt[PT_OFFSET(virt)].base_addr = phys >> 12; // strip off lower 12 bits
 }

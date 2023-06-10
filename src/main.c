@@ -13,15 +13,14 @@
 
 #include "gdt.h"
 #include "limine.h"
+#include "log.h"
 #include "pmm.h"
-#include "vmm.h"
 #include "terminal.h"
+#include "vmm.h"
 
 #include <stddef.h>
 #include <stdint.h>
 
-#define LOG(s, ...) \
-  terminal_printf("[%s:%d]: " s "\n", __FILE__, __LINE__, ##__VA_ARGS__)
 #define FONT(s) _binary_fonts_##s##_psf_start
 
 struct gdt gdt[] = {

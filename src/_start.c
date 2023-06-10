@@ -17,6 +17,7 @@
 uint64_t KERNEL_PHYS;
 uint64_t KERNEL_SIZE;
 struct limine_framebuffer *FRAMEBUFFER;
+uint64_t FRAMEBUFFER_SIZE;
 uint64_t HIGHER_HALF_START;
 struct limine_memmap_entry **MEMMAP;
 uint64_t MEMMAP_COUNT;
@@ -57,13 +58,17 @@ __attribute__((noreturn)) void _start(void)
   MEMMAP       = mmap_request.response->entries;
   MEMMAP_COUNT = mmap_request.response->entry_count;
 
-  // get start of kernel
+  // get start of kernel and framebuffer size
   for (uint64_t i = 0; i < MEMMAP_COUNT; i++)
   {
-    if (MEMMAP[i]->type == LIMINE_MEMMAP_KERNEL_AND_MODULES)
+    switch (MEMMAP[i]->type)
     {
+    case LIMINE_MEMMAP_KERNEL_AND_MODULES:
       KERNEL_PHYS = MEMMAP[i]->base;
       KERNEL_SIZE = MEMMAP[i]->length;
+      break;
+    case LIMINE_MEMMAP_FRAMEBUFFER:
+      FRAMEBUFFER_SIZE = MEMMAP[i]->length;
       break;
     }
   }
