@@ -9,7 +9,7 @@
  * system.
  */
 
-#define TERM_FONT FONT(10x20)
+#define TERM_FONT FONT(10x18)
 
 #include "gdt.h"
 #include "limine.h"
@@ -37,17 +37,13 @@ struct gdt gdt[] = {
 struct gdtr gdtr;
 
 extern char TERM_FONT;
-extern uint64_t KERNEL_PHYS;
-extern uint64_t KERNEL_SIZE;
+extern uint64_t KERNEL_PHYS, KERNEL_SIZE, MEMMAP_COUNT;
+extern struct limine_memmap_entry **MEMMAP;
 
 void odyssey(void)
 {
   // initialize terminal
   terminal_init(&TERM_FONT);
-
-  // print kernel location from memory map
-  LOG("Kernel location: %016llp - %016llp (%llp bytes)", KERNEL_PHYS,
-      KERNEL_PHYS + KERNEL_SIZE, KERNEL_SIZE);
 
   // initialize GDT
   LOG("Initializing GDT...");
@@ -61,4 +57,6 @@ void odyssey(void)
   // initialize VMM
   LOG("Initializing VMM...");
   vmm_init();
+
+  LOG("OMG");
 }

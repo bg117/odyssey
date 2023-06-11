@@ -21,7 +21,7 @@
 #define ALLOCATE_PT(pt)                              \
   do                                                 \
   {                                                  \
-    if (!((pt)->flags & PT_PRESENT))                \
+    if (!((pt)->flags & PT_PRESENT))                 \
     {                                                \
       (pt)->flags     = PT_PRESENT | PT_WRITABLE;    \
       (pt)->base_addr = (uint64_t)pmm_alloc() >> 12; \
@@ -34,8 +34,8 @@
 static struct page_table_entry *PML4;
 static bool initialized;
 
-extern uint64_t KERNEL_PHYS, KERNEL_SIZE, FRAMEBUFFER_SIZE, HIGHER_HALF_START;
-extern struct limine_framebuffer *FRAMEBUFFER;
+extern uint64_t KERNEL_PHYS, KERNEL_SIZE, FRAMEBUFFERS_PHYS, FRAMEBUFFERS_SIZE,
+    HIGHER_HALF_START;
 
 void map_page(uint64_t phys, uint64_t virt);
 
@@ -51,7 +51,7 @@ void vmm_init()
       (KERNEL_SIZE + PAGE_SIZE - 1) &
       -PAGE_SIZE; // -PAGE_SIZE is equivalent to ~(PAGE_SIZE - 1)
   const uint64_t rounded_fb_size =
-      (FRAMEBUFFER_SIZE + PAGE_SIZE - 1) & -PAGE_SIZE;
+      (FRAMEBUFFERS_SIZE + PAGE_SIZE - 1) & -PAGE_SIZE;
 
   struct page_table_entry *pml4e, *pdpte, *pde, *pte;
 
@@ -74,15 +74,15 @@ void vmm_init()
     pte =
         &((struct page_table_entry *)(pde->base_addr << 12))[PT_OFFSET(offset)];
 
-    pte->flags     = PT_PRESENT | PT_WRITABLE;
-    pte->base_addr = (KERNEL_PHYS + b)
-                     >> 12; // physical address of kernel + page offset
+    pte->flags = PT_PRESENT | PT_WRITABLE;
+    pte->base_addr =
+        (KERNEL_PHYS + b) >> 12; // physical address of kernel + page offset
   }
 
   // map framebuffer into higher half
   for (uint64_t b = 0; b < rounded_fb_size; b += PAGE_SIZE)
   {
-    const uint64_t offset = (uint64_t)FRAMEBUFFER + b;
+    const uint64_t offset = HIGHER_HALF_START + FRAMEBUFFERS_PHYS + b;
 
     pml4e = &PML4[PML4_OFFSET(offset)];
     ALLOCATE_PT(pml4e);
@@ -99,14 +99,45 @@ void vmm_init()
         &((struct page_table_entry *)(pde->base_addr << 12))[PT_OFFSET(offset)];
 
     pte->flags     = PT_PRESENT | PT_WRITABLE;
-    pte->base_addr = ((uint64_t)FRAMEBUFFER - HIGHER_HALF_START + b)
-                     >> 12; // physical address of framebuffer + page offset
+    pte->base_addr = (offset - HIGHER_HALF_START) >>
+                     12; // physical address of framebuffer + page offset
+  }
+
+  // get bottom of stack (rbp)
+  uint64_t rbp;
+  asm volatile("movq %%rbp, %0;" : "=r"(rbp));
+
+  // round rbp up to nearest page
+  rbp = (rbp + PAGE_SIZE - 1) & -PAGE_SIZE;
+
+  // map kernel stack into higher half
+  for (uint64_t b = 0; b < 0x20000; b += PAGE_SIZE)
+  {
+    const uint64_t offset = (uint64_t)rbp - b; // x86 stack grows downwards
+
+    pml4e = &PML4[PML4_OFFSET(offset)];
+    ALLOCATE_PT(pml4e);
+
+    pdpte = &((struct page_table_entry *)(pml4e->base_addr
+                                          << 12))[PDPT_OFFSET(offset)];
+    ALLOCATE_PT(pdpte);
+
+    pde = &(
+        (struct page_table_entry *)(pdpte->base_addr << 12))[PD_OFFSET(offset)];
+    ALLOCATE_PT(pde);
+
+    pte =
+        &((struct page_table_entry *)(pde->base_addr << 12))[PT_OFFSET(offset)];
+
+    pte->flags     = PT_PRESENT | PT_WRITABLE;
+    pte->base_addr = (offset - HIGHER_HALF_START) >>
+                     12; // physical address of framebuffer + page offset
   }
 
   initialized = true;
 
   // LOAD LEVEL 4 PAGE TABLE!!!!
-  asm volatile("mov %0, %%cr3" ::"r"(PML4));
+  asm volatile("xchg %%bx, %%bx; mov %0, %%cr3" ::"r"(PML4));
 }
 
 void map_page(uint64_t phys, uint64_t virt)

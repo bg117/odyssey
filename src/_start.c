@@ -12,14 +12,18 @@
 #include "limine.h"
 
 #include <stddef.h>
+#include <string.h>
+
+
 
 /* extern */
 uint64_t KERNEL_PHYS;
 uint64_t KERNEL_SIZE;
-struct limine_framebuffer *FRAMEBUFFER;
-uint64_t FRAMEBUFFER_SIZE;
+uint64_t FRAMEBUFFERS_PHYS;
+uint64_t FRAMEBUFFERS_SIZE;
 uint64_t HIGHER_HALF_START;
 struct limine_memmap_entry **MEMMAP;
+struct limine_framebuffer *FRAMEBUFFER;
 uint64_t MEMMAP_COUNT;
 
 void odyssey(void);
@@ -30,6 +34,8 @@ static volatile struct limine_memmap_request mmap_request = {
     LIMINE_MEMMAP_REQUEST, 0};
 static volatile struct limine_hhdm_request hhdm_request = {LIMINE_HHDM_REQUEST,
                                                            0};
+static volatile struct limine_stack_size_request ss_request = {
+    LIMINE_STACK_SIZE_REQUEST, 0, .stack_size = 0x20000};
 
 __attribute__((noreturn)) static void halt(void)
 {
@@ -48,7 +54,7 @@ __attribute__((noreturn)) void _start(void)
     halt();
   }
 
-  // get framebuffer from response
+  // get framebuffer
   FRAMEBUFFER = fb_request.response->framebuffers[0];
 
   // get higher half start from response
@@ -68,7 +74,8 @@ __attribute__((noreturn)) void _start(void)
       KERNEL_SIZE = MEMMAP[i]->length;
       break;
     case LIMINE_MEMMAP_FRAMEBUFFER:
-      FRAMEBUFFER_SIZE = MEMMAP[i]->length;
+      FRAMEBUFFERS_PHYS = MEMMAP[i]->base;
+      FRAMEBUFFERS_SIZE = MEMMAP[i]->length;
       break;
     }
   }

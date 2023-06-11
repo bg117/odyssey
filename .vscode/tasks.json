@@ -2,19 +2,10 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Build",
-      "type": "shell",
-      "command": "make",
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      }
-    },
-    {
-      "label": "Run QEMU",
+      "label": "Build & Run QEMU",
       "type": "shell",
       "isBackground": true,
-      "command": "echo QEMU & qemu-system-x86_64 -s -S -hda odyssey.img",
+      "command": "make && echo QEMU & qemu-system-x86_64 -s -S -hda odyssey.img",
       "problemMatcher": {
         "pattern": {
           "regexp": "^(QEMU)",

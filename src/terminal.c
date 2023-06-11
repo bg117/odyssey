@@ -9,8 +9,8 @@
  */
 
 #include "terminal.h"
-#include "log.h"
 
+#include "log.h"
 #include "psf.h"
 
 #include <stdbool.h>
@@ -27,6 +27,9 @@ static struct psf_header *font;
 static unsigned int current_x = 0;
 static unsigned int current_y = 0;
 
+static uint64_t fb_pitch, fb_width, fb_height;
+static void *fb_address;
+
 void terminal_init(void *font_addr)
 {
   font = (struct psf_header *)font_addr;
@@ -34,10 +37,15 @@ void terminal_init(void *font_addr)
   current_x = 0;
   current_y = 0;
 
-  TERM_WIDTH  = FRAMEBUFFER->width / font->width;
-  TERM_HEIGHT = FRAMEBUFFER->height / font->height;
+  fb_pitch   = FRAMEBUFFER->pitch;
+  fb_width   = FRAMEBUFFER->width;
+  fb_height  = FRAMEBUFFER->height;
+  fb_address = FRAMEBUFFER->address;
 
-  LOG("Framebuffer address: %llp", FRAMEBUFFER);
+  TERM_WIDTH  = fb_width / font->width;
+  TERM_HEIGHT = fb_height / font->height;
+
+  LOG("Framebuffer address: %llp", fb_address);
 }
 
 void terminal_print_char(char c)
@@ -87,8 +95,8 @@ void terminal_print_char(char c)
 
   // get glyph data
   uint8_t *glyph = (uint8_t *)font + glyph_offset;
-  int off =
-      current_y * font->height * FRAMEBUFFER->pitch + current_x * font->width * 4;
+  int off        = current_y * font->height * fb_pitch +
+            current_x * font->width * 4;
   int line;
 
   for (uint32_t y = 0; y < font->height; y++)
@@ -98,13 +106,13 @@ void terminal_print_char(char c)
     for (uint32_t x = 0; x < font->width; x++)
     {
       // set pixel; 0xFFFFFF for white, 0x000000 for black
-      *(uint32_t *)(FRAMEBUFFER->address + line) =
+      *(uint32_t *)(fb_address + line) =
           glyph[x / 8] & (0x80 >> (x & 7)) ? 0xffffff : 0x000000;
       line += 4;
     }
 
     glyph += bytes_per_row;
-    off += FRAMEBUFFER->pitch;
+    off += fb_pitch;
   }
 
   current_x += 1;

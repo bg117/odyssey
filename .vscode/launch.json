@@ -21,7 +21,7 @@
         }
       ],
       "miDebuggerServerAddress": "localhost:1234",
-      "preLaunchTask": "Run QEMU"
+      "preLaunchTask": "Build & Run QEMU"
     },
   ]
 }
