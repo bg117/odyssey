@@ -15,7 +15,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-__attribute__((optnone)) void *memset(void *dest, int32_t value, size_t count)
+__attribute__((optnone)) extern "C" void *memset(void *dest, int32_t value,
+                                                 size_t count)
 {
   uint8_t *dst = (uint8_t *)dest;
   uint64_t val = (uint8_t)value;
@@ -48,7 +49,8 @@ __attribute__((optnone)) void *memset(void *dest, int32_t value, size_t count)
   return dest;
 }
 
-__attribute__((optnone)) void *memcpy(void *dest, const void *src, size_t count)
+__attribute__((optnone)) extern "C" void *memcpy(void *dest, const void *src,
+                                                 size_t count)
 {
   uint8_t *dst             = (uint8_t *)dest;
   const uint8_t *src_bytes = (const uint8_t *)src;
@@ -77,8 +79,8 @@ __attribute__((optnone)) void *memcpy(void *dest, const void *src, size_t count)
   return dest;
 }
 
-__attribute__((optnone)) void *memmove(void *dest, const void *src,
-                                       size_t count)
+__attribute__((optnone)) extern "C" void *memmove(void *dest, const void *src,
+                                                  size_t count)
 {
   uint8_t *dst             = (uint8_t *)dest;
   const uint8_t *src_bytes = (const uint8_t *)src;
@@ -133,7 +135,8 @@ __attribute__((optnone)) void *memmove(void *dest, const void *src,
   return dest;
 }
 
-int memcmp(const void *ptr1, const void *ptr2, size_t count)
+__attribute__((optnone)) extern "C" int memcmp(const void *ptr1,
+                                               const void *ptr2, size_t count)
 {
   const uint8_t *src1 = (const uint8_t *)ptr1;
   const uint8_t *src2 = (const uint8_t *)ptr2;
@@ -174,4 +177,15 @@ int memcmp(const void *ptr1, const void *ptr2, size_t count)
   }
 
   return 0;
+}
+
+__attribute__((optnone)) size_t strlen(const char *s)
+{
+  const char *p = s;
+  while (*p)
+  {
+    ++p;
+  }
+
+  return static_cast<size_t>(p - s);
 }

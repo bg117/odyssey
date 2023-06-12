@@ -21,7 +21,7 @@ uint64_t FRAMEBUFFERS_PHYS;
 uint64_t FRAMEBUFFERS_SIZE;
 uint64_t HIGHER_HALF_START;
 struct limine_memmap_entry **MEMMAP;
-struct limine_framebuffer *FRAMEBUFFER;
+struct limine_framebuffer FRAMEBUFFER;
 uint64_t MEMMAP_COUNT;
 void *STACK_TOP;
 
@@ -35,7 +35,6 @@ static volatile struct limine_hhdm_request hhdm_request = {LIMINE_HHDM_REQUEST,
                                                            0};
 static volatile struct limine_stack_size_request ss_request = {
     LIMINE_STACK_SIZE_REQUEST, 0, .stack_size = 0x20000};
-
 __attribute__((noreturn)) static void halt(void)
 {
   asm("cli");
@@ -46,7 +45,7 @@ __attribute__((noreturn)) static void halt(void)
   }
 }
 
-__attribute__((noreturn)) void _start(void)
+__attribute__((noreturn)) void _starst(void)
 {
   asm volatile("movq %%rsp, %0" : "=m"(STACK_TOP));
 
@@ -56,7 +55,8 @@ __attribute__((noreturn)) void _start(void)
   }
 
   // get framebuffer
-  FRAMEBUFFER = fb_request.response->framebuffers[0];
+  memcpy(&FRAMEBUFFER, fb_request.response->framebuffers[0],
+         sizeof(struct limine_framebuffer));
 
   // get higher half start from response
   HIGHER_HALF_START = hhdm_request.response->offset;

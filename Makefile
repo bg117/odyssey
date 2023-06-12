@@ -40,8 +40,8 @@ LD := clang
 SRCS_C := $(wildcard src/*.c)
 SRCS_CXX := $(wildcard src/*.cpp)
 FONTS := $(wildcard fonts/*.psf)
-OBJS := $(SRCS_C:.c=.o) $(SRCS_CXX:.cpp=.o) $(FONTS:.psf=.o)
-DEPS := $(SRCS_C:.c=.d) $(SRCS_CXX:.cpp=.d)
+OBJS := $(SRCS_CXX:.cpp=.cpp.o) $(FONTS:.psf=.o)
+DEPS := $(SRCS_C:.c=.c.d) $(SRCS_CXX:.cpp=.cpp.d)
 
 .PHONY: all hdd-img kernel clean
 
@@ -60,10 +60,10 @@ $(KERNEL): $(OBJS)
 
 -include $(DEPS)
 
-src/%.o: src/%.c
+src/%.c.o: src/%.c
 	$(CC) $< $(CFLAGS) $(CPPFLAGS) -c -o $@
 
-src/%.o: src/%.cpp
+src/%.cpp.o: src/%.cpp
 	$(CXX) $< $(CXXFLAGS) $(CPPFLAGS) -c -o $@
 
 fonts/%.o: fonts/%.psf
