@@ -37,6 +37,21 @@ struct page_table_entry
 /**
  * @brief Initialize the virtual memory manager.
  */
-void vmm_init();
+void vmm_init(void);
+
+/**
+ * @brief Allocates a single page of virtual memory.
+ *
+ * @return void*
+ */
+void *vmm_alloc(void);
+
+/**
+ * @brief Deallocates a page of virtual memory.
+ *
+ * @remark Ignores lower 12 bits of address. So different addresses within a
+ * single page will free the same page.
+ */
+void vmm_free(void *page);
 
 #endif

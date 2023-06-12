@@ -15,68 +15,163 @@
 #include <stddef.h>
 #include <stdint.h>
 
-void *memcpy(void *dest, const void *src, size_t n)
+__attribute__((optnone)) void *memset(void *dest, int32_t value, size_t count)
 {
-  uint8_t *pdest      = dest;
-  const uint8_t *psrc = src;
+  uint8_t *dst = (uint8_t *)dest;
+  uint64_t val = (uint8_t)value;
+  size_t i;
 
-  for (size_t i = 0; i < n; i++)
+  // Set bytes until the destination is aligned to 8 bytes
+  while ((uintptr_t)dst & 7 && count > 0)
   {
-    pdest[i] = psrc[i];
+    *dst++ = val;
+    --count;
+  }
+
+  uint64_t *dst_aligned = (uint64_t *)dst;
+  uint64_t value64      = val | (val << 8) | (val << 16) | (val << 24) |
+                     (val << 32) | (val << 40) | (val << 48) | (val << 56);
+
+  // Fill memory with 8-byte chunks using movsq
+  for (i = 0; i < count / 8; ++i)
+  {
+    *dst_aligned++ = value64;
+  }
+
+  // Fill any remaining bytes
+  dst = (uint8_t *)dst_aligned;
+  for (i = 0; i < count % 8; ++i)
+  {
+    *dst++ = val;
   }
 
   return dest;
 }
 
-void *memmove(void *dest, const void *src, size_t n)
+__attribute__((optnone)) void *memcpy(void *dest, const void *src, size_t count)
 {
-  uint8_t *pdest      = dest;
-  const uint8_t *psrc = src;
+  uint8_t *dst             = (uint8_t *)dest;
+  const uint8_t *src_bytes = (const uint8_t *)src;
 
-  if (src > dest)
+  if (((uintptr_t)dst & 7) == 0 && ((uintptr_t)src & 7) == 0 && count >= 8)
   {
-    memcpy(dest, src, n);
-  }
-  else if (src < dest)
-  {
-    // copy backwards if dest is higher than src
-    for (size_t i = n - 1; i >= 0; i--)
+    uint64_t *dst_aligned       = (uint64_t *)dst;
+    const uint64_t *src_aligned = (const uint64_t *)src_bytes;
+
+    // Copy 8-byte chunks using movsq
+    for (size_t i = 0; i < count / 8; ++i)
     {
-      pdest[i] = psrc[i];
+      *dst_aligned++ = *src_aligned++;
+    }
+
+    dst       = (uint8_t *)dst_aligned;
+    src_bytes = (const uint8_t *)src_aligned;
+  }
+
+  // Copy any remaining bytes
+  for (size_t i = 0; i < count; ++i)
+  {
+    *dst++ = *src_bytes++;
+  }
+
+  return dest;
+}
+
+__attribute__((optnone)) void *memmove(void *dest, const void *src,
+                                       size_t count)
+{
+  uint8_t *dst             = (uint8_t *)dest;
+  const uint8_t *src_bytes = (const uint8_t *)src;
+
+  if (dst < src_bytes && ((uintptr_t)dst & 7) == 0 &&
+      ((uintptr_t)src_bytes & 7) == 0 && count >= 8)
+  {
+    uint64_t *dst_aligned       = (uint64_t *)dst;
+    const uint64_t *src_aligned = (const uint64_t *)src_bytes;
+
+    // Forward copy 8-byte chunks using movsq
+    for (size_t i = 0; i < count / 8; ++i)
+    {
+      *dst_aligned++ = *src_aligned++;
+    }
+
+    dst       = (uint8_t *)dst_aligned;
+    src_bytes = (const uint8_t *)src_aligned;
+  }
+  else if (dst > src_bytes && ((uintptr_t)dst & 7) == 0 &&
+           ((uintptr_t)src_bytes & 7) == 0 && count >= 8)
+  {
+    uint64_t *dst_aligned       = (uint64_t *)(dst + count - 8);
+    const uint64_t *src_aligned = (const uint64_t *)(src_bytes + count - 8);
+
+    // Backward copy 8-byte chunks using movsq
+    for (size_t i = 0; i < count / 8; ++i)
+    {
+      *(dst_aligned - i) = *(src_aligned - i);
+    }
+
+    dst       = (uint8_t *)dst_aligned;
+    src_bytes = (const uint8_t *)src_aligned;
+  }
+
+  // Copy any remaining bytes
+  if (dst < src_bytes)
+  {
+    for (size_t i = 0; i < count; ++i)
+    {
+      *dst++ = *src_bytes++;
+    }
+  }
+  else if (dst > src_bytes)
+  {
+    for (size_t i = 0; i < count; ++i)
+    {
+      *(dst + count - i - 1) = *(src_bytes + count - i - 1);
     }
   }
 
   return dest;
 }
 
-int memcmp(const void *s1, const void *s2, size_t n)
+int memcmp(const void *ptr1, const void *ptr2, size_t count)
 {
-  const uint8_t *p1 = s1;
-  const uint8_t *p2 = s2;
+  const uint8_t *src1 = (const uint8_t *)ptr1;
+  const uint8_t *src2 = (const uint8_t *)ptr2;
 
-  for (size_t i = 0; i < n; i++)
+  // Compare 8-byte chunks as long as memory is aligned
+  while (((uintptr_t)src1 & 7) == 0 && count >= 8)
   {
-    if (p1[i] < p2[i])
+    uint64_t *aligned_src1 = (uint64_t *)src1;
+    uint64_t *aligned_src2 = (uint64_t *)src2;
+
+    if (*aligned_src1 != *aligned_src2)
     {
-      return -1;
+      // Mismatch found, determine which byte differs
+      for (int i = 0; i < 8; ++i)
+      {
+        if (src1[i] != src2[i])
+        {
+          return (int)src1[i] - (int)src2[i];
+        }
+      }
     }
-    else if (p1[i] > p2[i])
+
+    src1 += 8;
+    src2 += 8;
+    count -= 8;
+  }
+
+  // Compare remaining bytes
+  for (size_t i = 0; i < count; ++i)
+  {
+    if (*src1 != *src2)
     {
-      return 1;
+      return (int)*src1 - (int)*src2;
     }
+
+    ++src1;
+    ++src2;
   }
 
   return 0;
-}
-
-void *memset(void *s, int c, size_t n)
-{
-  uint8_t *ps = s;
-
-  for (size_t i = 0; i < n; i++)
-  {
-    ps[i] = c;
-  }
-
-  return s;
 }

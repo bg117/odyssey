@@ -14,8 +14,6 @@
 #include <stddef.h>
 #include <string.h>
 
-
-
 /* extern */
 uint64_t KERNEL_PHYS;
 uint64_t KERNEL_SIZE;
@@ -25,6 +23,7 @@ uint64_t HIGHER_HALF_START;
 struct limine_memmap_entry **MEMMAP;
 struct limine_framebuffer *FRAMEBUFFER;
 uint64_t MEMMAP_COUNT;
+void *STACK_TOP;
 
 void odyssey(void);
 
@@ -49,6 +48,8 @@ __attribute__((noreturn)) static void halt(void)
 
 __attribute__((noreturn)) void _start(void)
 {
+  asm volatile("movq %%rsp, %0" : "=m"(STACK_TOP));
+
   if (fb_request.response == NULL || fb_request.response->framebuffer_count < 1)
   {
     halt();

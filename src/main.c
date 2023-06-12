@@ -9,7 +9,7 @@
  * system.
  */
 
-#define TERM_FONT FONT(10x18)
+#define TERM_FONT FONT(6x12)
 
 #include "gdt.h"
 #include "limine.h"
@@ -58,5 +58,6 @@ void odyssey(void)
   LOG("Initializing VMM...");
   vmm_init();
 
-  LOG("OMG");
+  // test VMM
+  vmm_alloc();
 }

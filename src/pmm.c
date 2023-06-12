@@ -11,26 +11,28 @@
 #include "pmm.h"
 
 #include "limine.h"
+#include "log.h"
 #include "terminal.h"
 
 #include <string.h>
 
-uint64_t *bitmap;
+uint64_t *BITMAP, BITMAP_SIZE;
 
-uint64_t top_address;
-uint64_t free_base;
-uint64_t free_len;
-uint64_t free_amount;
-uint64_t free_limit;
+static uint64_t top_address;
+static uint64_t free_base;
+static uint64_t free_len;
+static uint64_t free_amount;
+static uint64_t free_limit;
 
 extern struct limine_memmap_entry **MEMMAP;
-extern uint64_t MEMMAP_COUNT;
+extern uint64_t MEMMAP_COUNT, HIGHER_HALF_START;
 
 void pmm_init(void)
 {
   free_base = 0;
   free_len  = 0;
 
+  LOG("Finding all free regions of memory...");
   for (size_t i = 0; i < MEMMAP_COUNT; i++)
   {
     // skip non-usable memory
@@ -39,23 +41,28 @@ void pmm_init(void)
       continue;
     }
 
+    uint64_t base = MEMMAP[i]->base, len = MEMMAP[i]->length;
+
     if (free_base == 0)
     {
-      free_base = MEMMAP[i]->base;
+      free_base = base;
     }
 
-    uint64_t top = MEMMAP[i]->base + MEMMAP[i]->length;
-    free_len += MEMMAP[i]->length;
+    LOG("Found %016llp-%016llp", base, len);
+    uint64_t top = base + len;
+    free_len += len;
 
     if (top > top_address)
     {
+      LOG("Setting new top address for free memory %016llp", top);
       top_address = top;
     }
   }
 
   // get amount of pages needed for the bitmap
-  uint64_t bitmap_size = ((top_address - free_base) / 4096 / 8 + PMM_PAGE_SIZE - 1) &
-                         ~(PMM_PAGE_SIZE - 1);
+  BITMAP_SIZE = ((top_address - free_base) / 4096 / 8 + PMM_PAGE_SIZE - 1) &
+                ~(PMM_PAGE_SIZE - 1);
+  LOG("Bitmap size is %llp bytes", BITMAP_SIZE);
 
   // find a large enough free area for the bitmap that doesn't overlap with
   // anything
@@ -68,17 +75,22 @@ void pmm_init(void)
     }
 
     // check if the memory overlaps with the bitmap
-    if (MEMMAP[i]->length >= bitmap_size)
+    if (MEMMAP[i]->length >= BITMAP_SIZE)
     {
-      bitmap = (uint64_t *)MEMMAP[i]->base;
+      LOG("Found region for storing bitmap %016llp", MEMMAP[i]->base);
+
+      BITMAP = (uint64_t *)(MEMMAP[i]->base + HIGHER_HALF_START);
       break;
     }
   }
 
   // set all pages as used
-  memset(bitmap, 0xFF, bitmap_size);
+  LOG("Clearing bitmap...", BITMAP_SIZE);
+
+  memset(BITMAP, 0xFF, BITMAP_SIZE);
   free_amount = 0;
 
+  LOG("Setting free regions as free...");
   // iterate over the memory map again to set the usable pages as free
   for (size_t i = 0; i < MEMMAP_COUNT; i++)
   {
@@ -98,19 +110,21 @@ void pmm_init(void)
       uint64_t idx = (addr - free_base) / PMM_PAGE_SIZE;
 
       // set the page as free
-      bitmap[idx / 64] &= ~(1 << (idx % 64));
+      BITMAP[idx / 64] &= ~(1 << (idx % 64));
       free_amount++;
     }
   }
 
-  uint64_t bitmap_pages = bitmap_size / PMM_PAGE_SIZE;
+  uint64_t bitmap_pages = BITMAP_SIZE / PMM_PAGE_SIZE;
 
+  LOG("Setting bitmap pages as used...");
   // set bitmap pages as used
   for (uint64_t i = 0; i < bitmap_pages; i++)
   {
     uint64_t idx =
-        ((uint64_t)bitmap + i * PMM_PAGE_SIZE - free_base) / PMM_PAGE_SIZE;
-    bitmap[idx / 64] |= (1 << (idx % 64));
+        ((uint64_t)BITMAP - HIGHER_HALF_START + i * PMM_PAGE_SIZE - free_base) /
+        PMM_PAGE_SIZE;
+    BITMAP[idx / 64] |= (1 << (idx % 64));
   }
 
   free_amount -= bitmap_pages;
@@ -122,6 +136,7 @@ void *pmm_alloc(void)
   // check if there are any free blocks
   if (free_amount == 0)
   {
+    LOG("Critical: no more free physical pages");
     return NULL;
   }
 
@@ -129,29 +144,34 @@ void *pmm_alloc(void)
   uint64_t i = 0;
   for (; i < free_limit; i++)
   {
-    if (!(bitmap[i / 64] & (1 << (i % 64))))
+    if (!(BITMAP[i / 64] & (1 << (i % 64))))
     {
       break;
     }
   }
 
   // set the block as used
-  bitmap[i / 64] |= (1 << (i % 64));
+  BITMAP[i / 64] |= (1 << (i % 64));
   free_amount--;
 
+  void *addr = (void *)(free_base + i * PMM_PAGE_SIZE);
+  LOG("Allocated block %016llp", addr);
+
   // return the address of the block
-  return (void *)(free_base + i * PMM_PAGE_SIZE);
+  return addr;
 }
 
 void pmm_free(void *ptr)
 {
   if (ptr == NULL)
   {
+    LOG("Error: cannot free null pointer");
     return;
   }
 
   if (free_amount == free_limit)
   {
+    LOG("Error: cannot free more pages than %llu", free_limit);
     return;
   }
 
@@ -159,5 +179,7 @@ void pmm_free(void *ptr)
   uint64_t i = ((uint64_t)ptr - free_base) / PMM_PAGE_SIZE;
 
   // set the block as free
-  bitmap[i / 64] &= ~(1 << (i % 64));
+  BITMAP[i / 64] &= ~(1 << (i % 64));
+
+  LOG("Freed %016llp", ptr);
 }
