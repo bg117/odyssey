@@ -1,12 +1,13 @@
 #include "graphics.hpp"
 
 #include "config.hpp"
-#include "int.hpp"
+#include "convert.hpp"
 #include "kernel_info.hpp"
 #include "psf.hpp"
 #include "types.hpp"
 
 #include <cstdarg>
+#include <cstring>
 
 extern kernel_info INFO;
 extern char FONT;
@@ -14,8 +15,7 @@ extern char FONT;
 enum class printf_status
 {
   normal,
-  specifier,
-  length
+  specifier
 };
 
 enum class printf_length
@@ -49,7 +49,7 @@ void printf_receive_arg_signed(printf_length len, std::va_list ap, char *buf,
                                int radix);
 void printf_receive_arg_unsigned(printf_length len, std::va_list ap, char *buf,
                                  int radix);
-void printf_pad(printf_pad_type pad, size len);
+void printf_pad(printf_pad_type pad, size len, char *buf);
 } // namespace
 
 namespace graphics
@@ -114,9 +114,158 @@ void print(const char c)
   }
 }
 
-__attribute__((format(printf, 1, 2))) void print(const char *fmt, ...)
+void print(const char *s)
 {
-  print_bare(fmt);
+  while (*s)
+  {
+    print(*s);
+    s++;
+  }
+}
+
+__attribute__((format(printf, 1, 2))) void printf(const char *fmt, ...)
+{
+  std::va_list ap;
+  va_start(ap, fmt);
+
+  int i     = 0;
+  auto pfs  = printf_status::normal;
+  auto flen = printf_length::normal;
+
+  auto pad    = printf_pad_type::none;
+  int pad_len = 0;
+
+  while (*fmt != '\0')
+  {
+    if (*fmt == '%')
+    {
+      pfs = printf_status::specifier;
+      ++fmt;
+    }
+
+    if (pfs == printf_status::specifier)
+    {
+
+      switch (*fmt)
+      {
+      case '0':
+        pad = printf_pad_type::zero;
+        ++fmt;
+        while (*fmt >= '0' && *fmt <= '9')
+        {
+          pad_len *= 10;
+          pad_len += *fmt - '0';
+          ++fmt;
+        }
+        continue;
+      case ' ':
+        pad = printf_pad_type::space;
+        ++fmt;
+        while (*fmt >= '0' && *fmt <= '9')
+        {
+          pad_len *= 10;
+          pad_len += *fmt - '0';
+          ++fmt;
+        }
+        continue;
+      case 'h':
+        if (flen == printf_length::normal)
+          flen = printf_length::h;
+        else if (flen == printf_length::h)
+          flen = printf_length::hh;
+        ++fmt;
+        continue;
+      case 'l':
+        if (flen == printf_length::normal)
+          flen = printf_length::l;
+        else if (flen == printf_length::h)
+          flen = printf_length::ll;
+        ++fmt;
+        continue;
+      case '%':
+        graphics::print('%');
+        break;
+      case 's': {
+        char *str = va_arg(ap, char *);
+        if (pad == printf_pad_type::space)
+        {
+          for (int i = 0; i < pad_len - strlen(str); ++i)
+            graphics::print(' ');
+        }
+        graphics::print(str);
+      }
+      break;
+      case 'i':
+      case 'd': {
+        char num[32];
+
+        printf_receive_arg_signed(flen, ap, num, 10);
+        graphics::print(num);
+      }
+      break;
+
+      case 'u': {
+        char num[32];
+
+        printf_receive_arg_unsigned(flen, ap, num, 10);
+        graphics::print(num);
+      }
+      break;
+
+      case 'x': {
+        char num[32];
+
+        printf_receive_arg_unsigned(flen, ap, num, 16);
+        graphics::print(num);
+      }
+      break;
+
+      case 'X': {
+        char num[32];
+
+        printf_receive_arg_unsigned(flen, ap, num, 16);
+        graphics::print(convert::string_to_upper(num));
+      }
+      break;
+
+      case 'p': {
+        char num[32];
+
+        graphics::printf("0x");
+        printf_receive_arg_unsigned(flen, ap, num, 16);
+        graphics::print(num);
+      }
+      break;
+
+      case 'o': {
+        char num[32];
+
+        printf_receive_arg_unsigned(flen, ap, num, 16);
+        graphics::print(num);
+      }
+      break;
+
+      default:
+        graphics::print('%');
+        graphics::print(*fmt);
+        break;
+      }
+    }
+    else
+    {
+      graphics::print(*fmt);
+    }
+
+    pfs     = printf_status::normal;
+    flen    = printf_length::normal;
+    pad     = printf_pad_type::none;
+    pad_len = 0;
+
+    ++i;
+    ++fmt;
+  }
+
+  va_end(ap);
 }
 } // namespace graphics
 
@@ -197,18 +346,22 @@ void printf_receive_arg_unsigned(printf_length len, std::va_list ap, char *buf,
   }
 }
 
-void printf_pad(printf_pad_type pad, size len)
+void printf_pad(printf_pad_type pad, size len, char *buf)
 {
   switch (pad)
   {
-    
-  }
-  if (zero_pad)                                     \
-    {                                                 \
-      for (int i = 0; i < pad_len - strlen(buf); ++i) \
-      {                                               \
-        terminal_print_char('0');                     \
-      }                                               \
+  case printf_pad_type::zero:
+    for (int i = 0; i < len - strlen(buf); ++i)
+    {
+      graphics::print('0');
     }
+    break;
+  case printf_pad_type::space:
+    for (int i = 0; i < len - strlen(buf); ++i)
+    {
+      graphics::print(' ');
+    }
+    break;
+  }
 }
 } // namespace

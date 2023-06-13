@@ -179,7 +179,7 @@ __attribute__((optnone)) extern "C" int memcmp(const void *ptr1,
   return 0;
 }
 
-__attribute__((optnone)) size_t strlen(const char *s)
+__attribute__((optnone)) extern "C" size_t strlen(const char *s)
 {
   const char *p = s;
   while (*p)

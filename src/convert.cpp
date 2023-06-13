@@ -1,4 +1,4 @@
-#include "int.hpp"
+#include "convert.hpp"
 
 namespace
 {
@@ -80,5 +80,35 @@ char *uint_to_string(unsigned long long num, char *buf, int radix)
     *ptr--   = tmp;
   }
   return rc;
+}
+
+char *string_to_upper(char *buf)
+{
+  char *p = buf;
+  while (*p)
+  {
+    if (*p >= 'a' && *p <= 'z')
+    {
+      *p -= 32;
+    }
+    ++p;
+  }
+
+  return buf;
+}
+
+char *string_to_lower(char *buf)
+{
+  char *p = buf;
+  while (*p)
+  {
+    if (*p >= 'A' && *p <= 'Z')
+    {
+      *p += 32;
+    }
+    ++p;
+  }
+
+  return buf;
 }
 } // namespace convert
