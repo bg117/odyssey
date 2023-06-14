@@ -1,7 +1,7 @@
 #pragma once
 
-#include "limine.h"
-#include "types.hpp"
+#include "../limine.h"
+#include "../misc/types.hpp"
 
 template <typename InfoT = std::nullptr_t> struct physical_memory_region
 {
@@ -10,7 +10,9 @@ template <typename InfoT = std::nullptr_t> struct physical_memory_region
   InfoT info;
 };
 
-struct kernel_info
+namespace kernel
+{
+struct info
 {
   struct
   {
@@ -24,3 +26,4 @@ struct kernel_info
 
   offset higher_half_offset;
 };
+} // namespace kernel

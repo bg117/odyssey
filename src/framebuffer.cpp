@@ -1,15 +1,15 @@
-#include "graphics.hpp"
+#include "graphics/framebuffer.hpp"
 
-#include "config.hpp"
-#include "convert.hpp"
-#include "kernel_info.hpp"
-#include "psf.hpp"
-#include "types.hpp"
+#include "graphics/psf.hpp"
+#include "kernel/info.hpp"
+#include "misc/config.hpp"
+#include "misc/convert.hpp"
+#include "misc/types.hpp"
 
 #include <cstdarg>
 #include <cstring>
 
-extern kernel_info INFO;
+extern kernel::info INFO;
 extern char FONT;
 
 enum class printf_status
@@ -36,15 +36,14 @@ enum class printf_pad_type
 
 namespace
 {
+graphics::psf *font;
 offset line, column;
-psf *font;
 limine_framebuffer *fb;
 /* const */
 offset MAX_LINES, MAX_COLUMNS;
 
 // draw bare character
 void print_bare(char c);
-void print_bare(const char *s);
 void printf_receive_arg_signed(printf_length len, std::va_list ap, char *buf,
                                int radix);
 void printf_receive_arg_unsigned(printf_length len, std::va_list ap, char *buf,
@@ -54,14 +53,16 @@ void printf_pad(printf_pad_type pad, size len, char *buf);
 
 namespace graphics
 {
+namespace framebuffer
+{
 void initialize()
 {
   line = column = 0;
   fb            = &INFO.framebuffer.info;
   font          = reinterpret_cast<psf *>(&FONT);
 
-  MAX_LINES   = fb->width / font->width;
-  MAX_COLUMNS = fb->height / font->height;
+  MAX_COLUMNS = fb->width / font->width;
+  MAX_LINES   = fb->height / font->height;
 }
 
 void set_pixel(const offset x, const offset y, const dword bpp32)
@@ -101,14 +102,11 @@ void print(const char c)
     break;
   default:
     print_bare(c);
+    column++;
     if (column >= MAX_COLUMNS)
     {
       column = 0;
       line++;
-    }
-    else
-    {
-      column++;
     }
     break;
   }
@@ -128,24 +126,26 @@ __attribute__((format(printf, 1, 2))) void printf(const char *fmt, ...)
   std::va_list ap;
   va_start(ap, fmt);
 
-  int i     = 0;
-  auto pfs  = printf_status::normal;
-  auto flen = printf_length::normal;
-
+  int i       = 0;
+  auto status = printf_status::normal;
+  auto length = printf_length::normal;
   auto pad    = printf_pad_type::none;
+
   int pad_len = 0;
+
+  char num[128];
 
   while (*fmt != '\0')
   {
+    memset(num, 0, sizeof(num));
     if (*fmt == '%')
     {
-      pfs = printf_status::specifier;
+      status = printf_status::specifier;
       ++fmt;
     }
 
-    if (pfs == printf_status::specifier)
+    if (status == printf_status::specifier)
     {
-
       switch (*fmt)
       {
       case '0':
@@ -169,95 +169,73 @@ __attribute__((format(printf, 1, 2))) void printf(const char *fmt, ...)
         }
         continue;
       case 'h':
-        if (flen == printf_length::normal)
-          flen = printf_length::h;
-        else if (flen == printf_length::h)
-          flen = printf_length::hh;
+        if (length == printf_length::normal)
+          length = printf_length::h;
+        else if (length == printf_length::h)
+          length = printf_length::hh;
         ++fmt;
         continue;
       case 'l':
-        if (flen == printf_length::normal)
-          flen = printf_length::l;
-        else if (flen == printf_length::h)
-          flen = printf_length::ll;
+        if (length == printf_length::normal)
+          length = printf_length::l;
+        else if (length == printf_length::h)
+          length = printf_length::ll;
         ++fmt;
         continue;
       case '%':
-        graphics::print('%');
+        graphics::framebuffer::print('%');
         break;
       case 's': {
         char *str = va_arg(ap, char *);
-        if (pad == printf_pad_type::space)
-        {
-          for (int i = 0; i < pad_len - strlen(str); ++i)
-            graphics::print(' ');
-        }
-        graphics::print(str);
+        printf_pad(pad, pad_len, str);
+        graphics::framebuffer::print(str);
       }
       break;
       case 'i':
-      case 'd': {
-        char num[32];
-
-        printf_receive_arg_signed(flen, ap, num, 10);
-        graphics::print(num);
-      }
-      break;
-
-      case 'u': {
-        char num[32];
-
-        printf_receive_arg_unsigned(flen, ap, num, 10);
-        graphics::print(num);
-      }
-      break;
-
-      case 'x': {
-        char num[32];
-
-        printf_receive_arg_unsigned(flen, ap, num, 16);
-        graphics::print(num);
-      }
-      break;
-
-      case 'X': {
-        char num[32];
-
-        printf_receive_arg_unsigned(flen, ap, num, 16);
-        graphics::print(convert::string_to_upper(num));
-      }
-      break;
-
-      case 'p': {
-        char num[32];
-
-        graphics::printf("0x");
-        printf_receive_arg_unsigned(flen, ap, num, 16);
-        graphics::print(num);
-      }
-      break;
-
-      case 'o': {
-        char num[32];
-
-        printf_receive_arg_unsigned(flen, ap, num, 16);
-        graphics::print(num);
-      }
-      break;
-
+      case 'd':
+        printf_receive_arg_signed(length, ap, num, 10);
+        printf_pad(pad, pad_len, num);
+        graphics::framebuffer::print(num);
+        break;
+      case 'u':
+        printf_receive_arg_unsigned(length, ap, num, 10);
+        printf_pad(pad, pad_len, num);
+        graphics::framebuffer::print(num);
+        break;
+      case 'x':
+        printf_receive_arg_unsigned(length, ap, num, 16);
+        printf_pad(pad, pad_len, num);
+        graphics::framebuffer::print(num);
+        break;
+      case 'X':
+        printf_receive_arg_unsigned(length, ap, num, 16);
+        printf_pad(pad, pad_len, num);
+        graphics::framebuffer::print(convert::string_to_upper(num));
+        break;
+      case 'p':
+        graphics::framebuffer::printf("0x");
+        printf_receive_arg_unsigned(length, ap, num, 16);
+        printf_pad(pad, pad_len, num);
+        graphics::framebuffer::print(num);
+        break;
+      case 'o':
+        printf_receive_arg_unsigned(length, ap, num, 16);
+        printf_pad(pad, pad_len, num);
+        graphics::framebuffer::print(num);
+        break;
       default:
-        graphics::print('%');
-        graphics::print(*fmt);
+        graphics::framebuffer::print('%');
+        graphics::framebuffer::print(*fmt);
         break;
       }
     }
     else
     {
-      graphics::print(*fmt);
+      graphics::framebuffer::print(*fmt);
     }
 
-    pfs     = printf_status::normal;
-    flen    = printf_length::normal;
+    status  = printf_status::normal;
+    length  = printf_length::normal;
     pad     = printf_pad_type::none;
     pad_len = 0;
 
@@ -267,6 +245,7 @@ __attribute__((format(printf, 1, 2))) void printf(const char *fmt, ...)
 
   va_end(ap);
 }
+} // namespace framebuffer
 } // namespace graphics
 
 namespace
@@ -283,18 +262,10 @@ void print_bare(const char c)
 
     for (counter x = 0; x < font->width; x++)
     {
-      graphics::set_pixel(column * font->width + x, line * font->height + y,
-                          row[x / 8] & (0x80 >> (x & 7)) ? 0xFFFFFF : 0x0);
+      graphics::framebuffer::set_pixel(
+          column * font->width + x, line * font->height + y,
+          row[x / 8] & (0x80 >> (x & 7)) ? 0xFFFFFF : 0x0);
     }
-  }
-}
-
-void print_bare(const char *s)
-{
-  while (*s)
-  {
-    graphics::print(*s);
-    s++;
   }
 }
 
@@ -353,13 +324,13 @@ void printf_pad(printf_pad_type pad, size len, char *buf)
   case printf_pad_type::zero:
     for (int i = 0; i < len - strlen(buf); ++i)
     {
-      graphics::print('0');
+      graphics::framebuffer::print('0');
     }
     break;
   case printf_pad_type::space:
     for (int i = 0; i < len - strlen(buf); ++i)
     {
-      graphics::print(' ');
+      graphics::framebuffer::print(' ');
     }
     break;
   }

@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+namespace graphics
+{
 struct __attribute__((packed)) psf
 {
   uint32_t magic;
@@ -13,3 +15,4 @@ struct __attribute__((packed)) psf
   uint32_t height;
   uint32_t width;
 };
+} // namespace graphics

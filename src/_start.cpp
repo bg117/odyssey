@@ -1,8 +1,8 @@
-#include "kernel_info.hpp"
+#include "kernel/info.hpp"
 
 #include <cstring>
 
-kernel_info INFO = {};
+kernel::info INFO = {};
 
 extern void kmain();
 
