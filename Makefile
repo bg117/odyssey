@@ -48,7 +48,7 @@ DEPS := $(SRCS_C:.c=.c.d) $(SRCS_CXX:.cpp=.cpp.d)
 all: kernel hdd-img
 
 hdd-img:
-	sh ./hdd-img.sh
+	bash -x ./hdd-img.sh
 
 kernel: $(KERNEL)
 
