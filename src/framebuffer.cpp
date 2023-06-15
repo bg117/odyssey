@@ -272,7 +272,7 @@ void print_bare(const char c)
     {
       graphics::framebuffer::set_pixel(
           column * font->width + x, line * font->height + y,
-          row[x / 8] & (0x80 >> (x & 7)) ? 0xFFFFFF : 0x0);
+          row[x / 8] & (0x80 >> (x & 7)) ? 0xb0acac : 0x0);
     }
   }
 }
