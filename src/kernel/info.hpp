@@ -27,6 +27,7 @@ struct info
   physical_memory_region<limine_framebuffer> framebuffer;
   physical_memory_region<> bitmap;
 
-  offset higher_half_offset;
+  offset higher_half_direct_offset;
+  offset higher_half_kernel_offset;
 };
 } // namespace kernel

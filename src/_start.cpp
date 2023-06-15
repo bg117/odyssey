@@ -1,9 +1,11 @@
 #include "kernel/info.hpp"
+#include "misc/types.hpp"
 
 #include <cstring>
 
 kernel::info INFO = {};
 
+extern char __kernel;
 extern void kmain();
 
 namespace
@@ -70,7 +72,10 @@ extern "C" void _start()
     }
   }
 
-  INFO.higher_half_offset = hhdm_request.response->offset;
+  INFO.higher_half_direct_offset = hhdm_request.response->offset;
+  INFO.higher_half_kernel_offset = reinterpret_cast<offset>(&__kernel);
+
+  INFO.stack.location -= INFO.higher_half_direct_offset;
 
   kmain();
 

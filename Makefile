@@ -9,14 +9,20 @@ COMMON_FLAGS = \
 	-fno-stack-protector \
 	-fno-stack-check \
 	-fno-strict-aliasing \
+	-fno-tree-loop-distribute-patterns \
 	-fno-PIE \
 	-fno-PIC \
 	-m64 \
 	-march=x86-64 \
 	-mabi=sysv \
 	-mno-red-zone \
+	-mno-sse \
+	-mno-sse2 \
+	-mno-mmx \
+	-mno-avx \
+	-mno-avx2 \
 	-mcmodel=kernel \
-	-O3 \
+	-O0 \
 	-g
 CFLAGS := $(COMMON_FLAGS) -std=gnu17
 CXXFLAGS := $(COMMON_FLAGS) -std=gnu++20
@@ -27,15 +33,13 @@ CPPFLAGS := \
 LDFLAGS := \
 	-nostdlib \
 	-static \
-	-Wl,-melf_x86_64 \
-	-Wl,-zmax-page-size=4096 \
+	-melf_x86_64 \
+	-zmax-page-size=4096 \
 	-Tlinker.lds \
-	-nopie \
-	-fuse-ld=lld
 
-CC := clang
-CXX := clang++
-LD := clang
+CC := gcc
+CXX := g++
+LD := ld
 
 SRCS_C := $(wildcard src/*.c)
 SRCS_CXX := $(wildcard src/*.cpp)

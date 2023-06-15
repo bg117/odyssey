@@ -23,8 +23,8 @@ namespace pmm
 {
 void initialize()
 {
-  physical_address top_address;
-  uint64_t free_len;
+  physical_address top_address{};
+  uint64_t free_len{};
   limine_memmap_entry **mmap = INFO.memory_map.map;
 
   for (uint64_t i = 0; i < INFO.memory_map.count; i++)
@@ -35,7 +35,7 @@ void initialize()
       continue;
     }
 
-    uint64_t base = mmap[i]->base, len = mmap[i]->length;
+    auto base = mmap[i]->base, len = mmap[i]->length;
 
     if (free_start == 0)
     {
@@ -43,7 +43,7 @@ void initialize()
     }
 
     LOG("found free region 0x%016lX-0x%016lX", base, len);
-    uint64_t top = base + len;
+    auto top = base + len;
     free_len += len;
 
     if (top > top_address)
@@ -73,8 +73,8 @@ void initialize()
     {
       LOG("found region for storing bitmap: 0x%016lX", mmap[i]->base);
 
-      bitmap =
-          reinterpret_cast<uint64_t *>(mmap[i]->base + INFO.higher_half_offset);
+      bitmap = reinterpret_cast<uint64_t *>(mmap[i]->base +
+                                            INFO.higher_half_direct_offset);
       break;
     }
   }
@@ -87,7 +87,7 @@ void initialize()
 
   LOG("unsetting free regions");
   // iterate over the memory map again to set the usable pages as free
-  for (size_t i = 0; i < INFO.memory_map.count; i++)
+  for (counter i = 0; i < INFO.memory_map.count; i++)
   {
     // skip non-usable memory
     if (mmap[i]->type != LIMINE_MEMMAP_USABLE)
@@ -96,13 +96,13 @@ void initialize()
     }
 
     // iterate through the pages
-    for (uint64_t j = 0; j < mmap[i]->length / PAGE_SIZE; j++)
+    for (counter j = 0; j < mmap[i]->length / PAGE_SIZE; j++)
     {
       // get the address of the page
-      uint64_t addr = mmap[i]->base + j * PAGE_SIZE;
+      physical_address addr = mmap[i]->base + j * PAGE_SIZE;
 
       // get the index of the page
-      uint64_t idx = (addr - free_start) / PAGE_SIZE;
+      auto idx = (addr - free_start) / PAGE_SIZE;
 
       // set the page as free
       bitmap[idx / 64] &= ~(1 << (idx % 64));
@@ -116,8 +116,8 @@ void initialize()
   // set bitmap pages as used
   for (uint64_t i = 0; i < bitmap_pages; i++)
   {
-    auto idx = (reinterpret_cast<uint64_t>(bitmap) - INFO.higher_half_offset +
-                i * PAGE_SIZE - free_start) /
+    auto idx = (reinterpret_cast<uint64_t>(bitmap) -
+                INFO.higher_half_direct_offset + i * PAGE_SIZE - free_start) /
                PAGE_SIZE;
     bitmap[idx / 64] |= (1 << (idx % 64));
   }
@@ -127,8 +127,8 @@ void initialize()
 
   LOG("updating kernel info structure");
 
-  INFO.bitmap.location =
-      reinterpret_cast<physical_address>(bitmap) - INFO.higher_half_offset;
+  INFO.bitmap.location = reinterpret_cast<physical_address>(bitmap) -
+                         INFO.higher_half_direct_offset;
   INFO.bitmap.size = bitmap_size;
 }
 
@@ -142,7 +142,7 @@ void *allocate()
   }
 
   // get first free block
-  uint64_t i = 0;
+  counter i = 0;
   for (; i < free_limit; i++)
   {
     if (!(bitmap[i / 64] & (1 << (i % 64))))
@@ -155,11 +155,11 @@ void *allocate()
   bitmap[i / 64] |= (1 << (i % 64));
   free_amount--;
 
-  auto addr = reinterpret_cast<void *>(free_start + i * PAGE_SIZE);
-  LOG("allocated block %p", addr);
+  auto block = reinterpret_cast<void *>(free_start + i * PAGE_SIZE);
+  //LOG("allocated block %p", block);
 
   // return the address of the block
-  return addr;
+  return block;
 }
 
 void deallocate(void *page)
@@ -177,13 +177,12 @@ void deallocate(void *page)
   }
 
   // get the index of the block
-  uint64_t i =
-      (reinterpret_cast<physical_address>(page) - free_start) / PAGE_SIZE;
+  auto i = (reinterpret_cast<physical_address>(page) - free_start) / PAGE_SIZE;
 
   // set the block as free
   bitmap[i / 64] &= ~(1 << (i % 64));
 
-  LOG("freed %p", page);
+  //LOG("freed %p", page);
 }
 } // namespace pmm
 } // namespace memory

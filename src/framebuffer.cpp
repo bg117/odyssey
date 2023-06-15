@@ -49,6 +49,8 @@ void printf_receive_arg_signed(printf_length len, std::va_list ap, char *buf,
 void printf_receive_arg_unsigned(printf_length len, std::va_list ap, char *buf,
                                  int radix);
 void printf_pad(printf_pad_type pad, uint64_t len, char *buf);
+
+void scroll_line();
 } // namespace
 
 namespace graphics
@@ -68,7 +70,7 @@ void initialize()
 void set_pixel(const offset x, const offset y, const uint32_t bpp32)
 {
   auto loc   = reinterpret_cast<uint32_t *>(fb->address);
-  offset off = y * (fb->pitch / (fb->bpp / 8)) + x;
+  offset off = y * fb->width + x;
   loc[off]   = bpp32;
 }
 
@@ -103,12 +105,18 @@ void print(const char c)
   default:
     print_bare(c);
     column++;
-    if (column >= MAX_COLUMNS)
-    {
-      column = 0;
-      line++;
-    }
     break;
+  }
+
+  if (column >= MAX_COLUMNS)
+  {
+    column = 0;
+    line++;
+  }
+  if (line >= MAX_LINES)
+  {
+    scroll_line();
+    line--;
   }
 }
 
@@ -214,8 +222,8 @@ __attribute__((format(printf, 1, 2))) void printf(const char *fmt, ...)
         break;
       case 'p':
         graphics::framebuffer::printf("0x");
-        printf_receive_arg_unsigned(length, ap, num, 16);
-        printf_pad(pad, pad_len, num);
+        printf_receive_arg_unsigned(printf_length::ll, ap, num, 16);
+        printf_pad(printf_pad_type::zero, 16, num);
         graphics::framebuffer::print(num);
         break;
       case 'o':
@@ -334,5 +342,18 @@ void printf_pad(printf_pad_type pad, uint64_t len, char *buf)
     }
     break;
   }
+}
+
+void scroll_line()
+{
+  // get how many pixels for one row (width of font * MAX_COLUMNS * height of
+  // font)
+  auto row_size    = fb->pitch * font->height;
+  auto fb_size     = fb->pitch * fb->height;
+  auto address_chr = reinterpret_cast<uint8_t *>(fb->address);
+  // memmove
+  memmove(address_chr, address_chr + row_size, fb_size - row_size);
+  // clear current line
+  memset(address_chr + fb_size - row_size, 0, row_size);
 }
 } // namespace
