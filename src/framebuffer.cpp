@@ -48,7 +48,7 @@ void printf_receive_arg_signed(printf_length len, std::va_list ap, char *buf,
                                int radix);
 void printf_receive_arg_unsigned(printf_length len, std::va_list ap, char *buf,
                                  int radix);
-void printf_pad(printf_pad_type pad, size len, char *buf);
+void printf_pad(printf_pad_type pad, uint64_t len, char *buf);
 } // namespace
 
 namespace graphics
@@ -65,7 +65,7 @@ void initialize()
   MAX_LINES   = fb->height / font->height;
 }
 
-void set_pixel(const offset x, const offset y, const dword bpp32)
+void set_pixel(const offset x, const offset y, const uint32_t bpp32)
 {
   auto loc   = reinterpret_cast<uint32_t *>(fb->address);
   offset off = y * (fb->pitch / (fb->bpp / 8)) + x;
@@ -254,7 +254,7 @@ void print_bare(const char c)
 {
   offset bytes_per_row = ((font->width + 8 - 1) & -8) / 8;
   offset glyph_offset  = font->header_size + c * font->bytes_per_glyph;
-  auto glyph           = reinterpret_cast<byte *>(font) + glyph_offset;
+  auto glyph           = reinterpret_cast<uint8_t *>(font) + glyph_offset;
 
   for (counter y = 0; y < font->height; y++)
   {
@@ -317,7 +317,7 @@ void printf_receive_arg_unsigned(printf_length len, std::va_list ap, char *buf,
   }
 }
 
-void printf_pad(printf_pad_type pad, size len, char *buf)
+void printf_pad(printf_pad_type pad, uint64_t len, char *buf)
 {
   switch (pad)
   {

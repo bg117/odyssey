@@ -3,9 +3,11 @@
 #include "../limine.h"
 #include "../misc/types.hpp"
 
+constexpr uint64_t PAGE_SIZE = 0x1000; // 4 KiB
+
 template <typename InfoT = std::nullptr_t> struct physical_memory_region
 {
-  physical_address location;
+  memory_address location;
   uint64_t size;
   InfoT info;
 };
@@ -23,6 +25,7 @@ struct info
   physical_memory_region<> kernel;
   physical_memory_region<> stack;
   physical_memory_region<limine_framebuffer> framebuffer;
+  physical_memory_region<> bitmap;
 
   offset higher_half_offset;
 };

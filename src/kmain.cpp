@@ -1,5 +1,6 @@
 #include "graphics/framebuffer.hpp"
 #include "low_level/gdt.hpp"
+#include "memory/pmm.hpp"
 #include "misc/log.hpp"
 
 namespace
@@ -25,4 +26,6 @@ void kmain()
 
   low_level::gdt::make_descriptor(gdt_desc, gdt, 9);
   low_level::gdt::load(gdt_desc, 0x28, 0x30);
+
+  memory::pmm::initialize();
 }
