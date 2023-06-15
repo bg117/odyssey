@@ -266,13 +266,13 @@ void print_bare(const char c)
 
   for (counter y = 0; y < font->height; y++)
   {
-    auto row = glyph + y * bytes_per_row;
+    auto row = reinterpret_cast<uint16_t *>(glyph + y * bytes_per_row);
 
     for (counter x = 0; x < font->width; x++)
     {
       graphics::framebuffer::set_pixel(
           column * font->width + x, line * font->height + y,
-          row[x / 8] & (0x80 >> (x & 7)) ? 0xb0acac : 0x0);
+          *row & 1 << (font->width - x - 1) ? 0xb0acac : 0x0);
     }
   }
 }
