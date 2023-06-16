@@ -37,4 +37,7 @@ void kmain()
   auto p4 = memory::vmm::allocate(18);
 
   LOG("%p, %p, %p, %p", p1, p2, p3, p4);
+
+  int *a = new int[10];
+  delete[] a;
 }
