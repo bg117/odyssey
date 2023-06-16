@@ -325,6 +325,11 @@ void printf_receive_arg_unsigned(printf_length len, std::va_list ap, char *buf,
 
 void printf_pad(printf_pad_type pad, uint64_t len, char *buf)
 {
+  if (len == 0)
+  {
+    return;
+  }
+
   for (size_t i = 0; i < len - strlen(buf); i++)
   {
     switch (pad)
