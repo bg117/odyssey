@@ -1,10 +1,10 @@
 KERNEL := odyssey
 
 # use specifically limine v4.20230530.0
-COMMON_FLAGS = \
+CXXFLAGS = \
 	-Wall \
 	-Wextra \
-	-std=gnu99 \
+	-std=gnu++20 \
 	-ffreestanding \
 	-fno-stack-protector \
 	-fno-stack-check \
@@ -24,8 +24,6 @@ COMMON_FLAGS = \
 	-mcmodel=kernel \
 	-O0 \
 	-g
-CFLAGS := $(COMMON_FLAGS) -std=gnu17
-CXXFLAGS := $(COMMON_FLAGS) -std=gnu++20
 
 CPPFLAGS := \
 	-MMD
@@ -37,15 +35,13 @@ LDFLAGS := \
 	-zmax-page-size=4096 \
 	-Tlinker.lds \
 
-CC := gcc
 CXX := g++
 LD := ld
 
-SRCS_C := $(wildcard src/*.c)
 SRCS_CXX := $(wildcard src/*.cpp)
 FONTS := $(wildcard fonts/*.psf)
-OBJS := $(SRCS_CXX:.cpp=.cpp.o) $(FONTS:.psf=.o)
-DEPS := $(SRCS_C:.c=.c.d) $(SRCS_CXX:.cpp=.cpp.d)
+OBJS := $(SRCS_CXX:.cpp=.o) $(FONTS:.psf=.o)
+DEPS := $(SRCS_CXX:.cpp=.d)
 
 .PHONY: all hdd-img kernel clean
 
@@ -64,10 +60,7 @@ $(KERNEL): $(OBJS)
 
 -include $(DEPS)
 
-src/%.c.o: src/%.c
-	$(CC) $< $(CFLAGS) $(CPPFLAGS) -c -o $@
-
-src/%.cpp.o: src/%.cpp
+src/%.o: src/%.cpp
 	$(CXX) $< $(CXXFLAGS) $(CPPFLAGS) -c -o $@
 
 fonts/%.o: fonts/%.psf
