@@ -13,7 +13,8 @@ namespace
 memory::paging_structure_entry *pml4;
 bool initialized = false;
 
-constexpr offset RECURSIVE_PSE_INDEX = 510;
+constexpr offset RECURSIVE_PSE_INDEX      = 510;
+constexpr uint32_t CONSECUTIVE_ADDR_LIMIT = 0x3ffff;
 
 void map_page(physical_address phys, virtual_address virt);
 void map_page_initialized(physical_address phys, virtual_address virt);
@@ -23,10 +24,7 @@ void allocate_paging_structure_entry(memory::paging_structure_entry *pse);
 
 void reload_cr3();
 
-memory::paging_structure_entry *find_first_free_pte(offset &pml4_idx,
-                                                    offset &pdpt_idx,
-                                                    offset &pd_idx,
-                                                    offset &pt_idx);
+virtual_address find_first_free_region(uint64_t count = 1);
 
 memory::paging_structure_entry *entry_from_indices(offset pdpt, offset pd,
                                                    offset pt, offset pte);
@@ -95,41 +93,64 @@ void initialize()
   reload_cr3();
 }
 
-void *allocate()
+void *allocate(uint32_t count)
 {
-  // get a free PTE
-  offset pml4i, pdpti, pdi, pti;
-  paging_structure_entry *pte = find_first_free_pte(pml4i, pdpti, pdi, pti);
-
-  // if NULL, return NULL
-  if (pte == nullptr)
+  if (count == 0)
   {
+    LOG("error: cannot find 0 consecutive pages of virtual addresses");
+    return 0;
+  }
+
+  // max 2^18 consec. pages (available bits)
+  if (count > CONSECUTIVE_ADDR_LIMIT)
+  {
+    LOG("warning: will not allocate more than %u consecutive pages of virtual "
+        "addresses",
+        CONSECUTIVE_ADDR_LIMIT);
+    count = CONSECUTIVE_ADDR_LIMIT;
+  }
+
+  // get a free region
+  virtual_address region = find_first_free_region(count);
+
+  // if no memory, return NULL
+  if (region == 0)
+  {
+    LOG("critical: no more free virtual addresses");
     return nullptr;
   }
 
   // allocate phys mem for PTE
-  void *block = pmm::allocate();
+  for (counter i = 0; i < count; i++)
+  {
+    void *block           = pmm::allocate();
+    const auto region_off = region + i * PAGE_SIZE;
+    map_page(reinterpret_cast<virtual_address>(block), region_off);
 
-  // set members
-  pte->flags     = 0x3;
-  pte->base_addr = reinterpret_cast<physical_address>(block) >> 12;
+    // if base of region, set count of consecutive virtual addresses
+    if (i == 0)
+    {
+      auto pte =
+          entry_from_indices(pml4_offset(region_off), pdpt_offset(region_off),
+                             pd_offset(region_off), pt_offset(region_off));
+      pte->available_1 = count & 0x7FFF;      // lower 15 bits
+      pte->available_0 = (count >> 15) & 0x7; // upper 3 bits
+    }
+  }
 
-  virtual_address addr = vaddr_from_indices(pml4i, pdpti, pdi, pti);
-  return reinterpret_cast<void *>(addr);
+  return reinterpret_cast<void *>(region);
 }
 
 void deallocate(void *page)
 {
-  uint64_t addr = (uint64_t)page;
-
-  paging_structure_entry
-      *pml4e = entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
+  auto addr  = reinterpret_cast<virtual_address>(page);
+  auto pml4e = entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
                                   RECURSIVE_PSE_INDEX, pml4_offset(addr)),
-      *pdpte = entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
+       pdpte = entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
                                   pml4_offset(addr), pdpt_offset(addr)),
-      *pde   = entry_from_indices(RECURSIVE_PSE_INDEX, pml4_offset(addr),
+       pde   = entry_from_indices(RECURSIVE_PSE_INDEX, pml4_offset(addr),
                                   pdpt_offset(addr), pd_offset(addr)),
-      *pte   = entry_from_indices(pml4_offset(addr), pdpt_offset(addr),
+       pte   = entry_from_indices(pml4_offset(addr), pdpt_offset(addr),
                                   pd_offset(addr), pt_offset(addr));
   // if any structure in the hierarchy is not actually present then abort
   if (!((pml4e->flags & 0x1) && (pdpte->flags & 0x1) && (pde->flags & 0x1) &&
@@ -139,11 +160,27 @@ void deallocate(void *page)
     return; // false alarm ._.
   }
 
-  // free physical page
-  pmm::deallocate(reinterpret_cast<void *>(pte->base_addr << 12));
+  uint32_t consec_count = pte->available_0 << 15 | pte->available_1;
+  if (consec_count == 0)
+  {
+    LOG("warning: PTE.available_0 | PTE.available_1 of 0x%016lu is 0; freeing "
+        "1 page only",
+        addr);
+    consec_count = 1;
+  }
 
-  // unset present bit
-  pte->flags = 0;
+  for (counter i = 0; i < consec_count; i++)
+  {
+    const auto addr_off = addr + i * PAGE_SIZE;
+    pte = entry_from_indices(pml4_offset(addr_off), pdpt_offset(addr_off),
+                             pd_offset(addr_off), pt_offset(addr_off));
+    // free physical page
+    pmm::deallocate(reinterpret_cast<void *>(pte->base_addr << 12));
+    // unset members
+    pte->available_0 = pte->available_1 = 0;
+    pte->flags                          = 0;
+    pte->base_addr                      = 0;
+  }
 }
 } // namespace vmm
 } // namespace memory
@@ -253,46 +290,65 @@ void reload_cr3()
   LOG("reloaded CR3");
 }
 
-memory::paging_structure_entry *find_first_free_pte(offset &pml4_idx,
-                                                    offset &pdpt_idx,
-                                                    offset &pd_idx,
-                                                    offset &pt_idx)
+virtual_address find_first_free_region(uint64_t count)
 {
-  memory::paging_structure_entry *pml4e, *pdpte, *pde, *pte;
+  counter consec_count                            = 0;
+  virtual_address consec_base                     = 0;
+  memory::paging_structure_entry *consec_base_pse = 0;
 
-  for (pml4_idx = 256; pml4_idx < 512; pml4_idx++)
-  {
-    // get PML4 entry associated
-    pml4e = entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
-                               RECURSIVE_PSE_INDEX, pml4_idx);
+  for (offset pml4_idx = 256; pml4_idx < 512; pml4_idx++)
+  { // get PML4 entry associated
+    auto pml4e = entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
+                                    RECURSIVE_PSE_INDEX, pml4_idx);
     allocate_paging_structure_entry(pml4e);
 
-    for (pdpt_idx = 0; pdpt_idx < 512; pdpt_idx++)
+    for (offset pdpt_idx = 0; pdpt_idx < 512; pdpt_idx++)
     {
-      pdpte = entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
-                                 pml4_idx, pdpt_idx);
+      auto pdpte = entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
+                                      pml4_idx, pdpt_idx);
       allocate_paging_structure_entry(pdpte);
 
-      for (pd_idx = 0; pd_idx < 512; pd_idx++)
+      for (offset pd_idx = 0; pd_idx < 512; pd_idx++)
       {
-        pde =
+        auto pde =
             entry_from_indices(RECURSIVE_PSE_INDEX, pml4_idx, pdpt_idx, pd_idx);
         allocate_paging_structure_entry(pde);
 
-        for (pt_idx = 0; pt_idx < 512; pt_idx++)
+        for (offset pt_idx = 0; pt_idx < 512; pt_idx++)
         {
-          pte = entry_from_indices(pml4_idx, pdpt_idx, pd_idx, pt_idx);
+          auto pte = entry_from_indices(pml4_idx, pdpt_idx, pd_idx, pt_idx);
           if (!(pte->flags & 0x1))
           {
-            return pte;
+            // if 0 consecutive virtual addresses and encounter a free entry,
+            // set base
+            if (consec_count == 0)
+            {
+              consec_base =
+                  vaddr_from_indices(pml4_idx, pdpt_idx, pd_idx, pt_idx);
+              consec_base_pse = pte;
+            }
+
+            consec_count++;
+
+            // enough consecutive virtual addresses
+            if (consec_count == count)
+            {
+              // set number of consecutive pages
+              consec_base_pse->available_1 = count & 0x7FFF;      // low 15 bits
+              consec_base_pse->available_0 = (count >> 15) & 0x7; // high 3 bits
+              return consec_base;
+            }
+          }
+          else
+          {
+            consec_count = 0; // resent counter
           }
         }
       }
     }
   }
 
-  LOG("critical: no more free virtual address (how does this even happen?)");
-  return nullptr; // no free :(
+  return 0; // no free :(
 }
 
 constexpr virtual_address vaddr_from_indices(offset pml4, offset pdpt,

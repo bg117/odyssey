@@ -22,7 +22,7 @@ CXXFLAGS = \
 	-mno-avx \
 	-mno-avx2 \
 	-mcmodel=kernel \
-	-O0 \
+	-O3 \
 	-g
 
 CPPFLAGS := \

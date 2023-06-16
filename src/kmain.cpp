@@ -30,11 +30,11 @@ void kmain()
   memory::pmm::initialize();
   memory::vmm::initialize();
 
-  auto p1 = memory::vmm::allocate();
-  auto p2 = memory::vmm::allocate();
+  auto p1 = memory::vmm::allocate(35);
+  auto p2 = memory::vmm::allocate(16);
   memory::vmm::deallocate(p1);
-  auto p3 = memory::vmm::allocate();
-  auto p4 = memory::vmm::allocate();
+  auto p3 = memory::vmm::allocate(18);
+  auto p4 = memory::vmm::allocate(18);
 
   LOG("%p, %p, %p, %p", p1, p2, p3, p4);
 }
