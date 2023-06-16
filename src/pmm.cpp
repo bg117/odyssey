@@ -24,7 +24,6 @@ namespace pmm
 void initialize()
 {
   physical_address top_address{};
-  uint64_t free_len{};
   limine_memmap_entry **mmap = INFO.memory_map.map;
 
   for (uint64_t i = 0; i < INFO.memory_map.count; i++)
@@ -44,7 +43,6 @@ void initialize()
 
     LOG("found free region 0x%016lX-0x%016lX", base, len);
     auto top = base + len;
-    free_len += len;
 
     if (top > top_address)
     {
