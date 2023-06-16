@@ -134,7 +134,6 @@ __attribute__((format(printf, 1, 2))) void printf(const char *fmt, ...)
   std::va_list ap;
   va_start(ap, fmt);
 
-  int i       = 0;
   auto status = printf_status::normal;
   auto length = printf_length::normal;
   auto pad    = printf_pad_type::none;
@@ -247,7 +246,6 @@ __attribute__((format(printf, 1, 2))) void printf(const char *fmt, ...)
     pad     = printf_pad_type::none;
     pad_len = 0;
 
-    ++i;
     ++fmt;
   }
 
@@ -327,20 +325,19 @@ void printf_receive_arg_unsigned(printf_length len, std::va_list ap, char *buf,
 
 void printf_pad(printf_pad_type pad, uint64_t len, char *buf)
 {
-  switch (pad)
+  for (size_t i = 0; i < len - strlen(buf); i++)
   {
-  case printf_pad_type::zero:
-    for (int i = 0; i < len - strlen(buf); ++i)
+    switch (pad)
     {
+    case printf_pad_type::zero:
       graphics::framebuffer::print('0');
-    }
-    break;
-  case printf_pad_type::space:
-    for (int i = 0; i < len - strlen(buf); ++i)
-    {
+      break;
+    case printf_pad_type::space:
       graphics::framebuffer::print(' ');
+      break;
+    default:
+      break;
     }
-    break;
   }
 }
 
