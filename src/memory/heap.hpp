@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstddef>
+#include <cstdint>
 
 namespace memory
 {
@@ -8,7 +8,7 @@ namespace heap
 {
 void initialize();
 
-void *allocate(size_t bytes);
+void *allocate(uint64_t bytes);
 void deallocate(void *block);
 }
 } // namespace memory

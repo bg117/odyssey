@@ -1,5 +1,7 @@
 #include "memory/heap.hpp"
 
+#include <cstddef>
+
 void *operator new(size_t bytes)
 {
   return memory::heap::allocate(bytes);

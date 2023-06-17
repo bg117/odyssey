@@ -1,5 +1,6 @@
 #include "graphics/framebuffer.hpp"
 #include "low_level/gdt.hpp"
+#include "memory/heap.hpp"
 #include "memory/pmm.hpp"
 #include "memory/vmm.hpp"
 #include "misc/log.hpp"
@@ -29,15 +30,16 @@ void kmain()
 
   memory::pmm::initialize();
   memory::vmm::initialize();
+  memory::heap::initialize();
 
-  auto p1 = memory::vmm::allocate(35);
-  auto p2 = memory::vmm::allocate(16);
-  memory::vmm::deallocate(p1);
-  auto p3 = memory::vmm::allocate(18);
-  auto p4 = memory::vmm::allocate(18);
-
-  LOG("%p, %p, %p, %p", p1, p2, p3, p4);
-
-  int *a = new int[10];
-  delete[] a;
+  for (int i = 1; i <= 20; i++)
+  {
+    void *alloc =  memory::heap::allocate(i * 2 + 1000);
+    LOG("test heap alloc[%d]: %p", i, alloc);
+  }
+  for (int i = 21; i <= 30; i++)
+  {
+    void *alloc =  memory::heap::allocate(i * 2);
+    LOG("test heap alloc[%d]: %p", i, alloc);
+  }
 }

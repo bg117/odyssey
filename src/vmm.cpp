@@ -14,7 +14,7 @@ memory::paging_structure_entry *pml4;
 bool initialized = false;
 
 constexpr offset RECURSIVE_PSE_INDEX      = 510;
-constexpr uint32_t CONSECUTIVE_ADDR_LIMIT = 0x3ffff;
+constexpr uint16_t CONSECUTIVE_ADDR_LIMIT = 0x3fff;
 
 void map_page(physical_address phys, virtual_address virt);
 void map_page_initialized(physical_address phys, virtual_address virt);
@@ -23,6 +23,8 @@ void map_page_uninitialized(physical_address phys, virtual_address virt);
 void allocate_paging_structure_entry(memory::paging_structure_entry *pse);
 
 void reload_cr3();
+void invalidate_page(virtual_address addr);
+void invalidate_page(offset pml4, offset pdpt, offset pd, offset pt);
 
 virtual_address find_first_free_region(uint64_t count = 1);
 
@@ -133,8 +135,8 @@ void *allocate(uint32_t count)
       auto pte =
           entry_from_indices(pml4_offset(region_off), pdpt_offset(region_off),
                              pd_offset(region_off), pt_offset(region_off));
-      pte->available_1 = count & 0x7FFF;      // lower 15 bits
-      pte->available_0 = (count >> 15) & 0x7; // upper 3 bits
+      pte->available_1 = count & 0x7FF;      // lower 11 bits
+      pte->available_0 = (count >> 11) & 0x7; // upper 3 bits
     }
   }
 
@@ -221,6 +223,8 @@ void map_page_initialized(physical_address phys, virtual_address virt)
   // set page address
   pte->flags     = 0x3;
   pte->base_addr = phys >> 12;
+
+  invalidate_page(virt);
 }
 
 void map_page_uninitialized(physical_address phys, virtual_address virt)
@@ -267,10 +271,6 @@ void allocate_paging_structure_entry(memory::paging_structure_entry *pse)
     {
       pse->base_addr =
           reinterpret_cast<physical_address>(memory::pmm::allocate()) >> 12;
-      if (initialized)
-      {
-        reload_cr3();
-      }
     }
   }
 }
@@ -287,7 +287,6 @@ void reload_cr3()
 {
   asm volatile("mov %0, %%cr3" ::"r"(
       pml4)); // load CR3 with memory address of PML4 (load into register first)
-  LOG("reloaded CR3");
 }
 
 virtual_address find_first_free_region(uint64_t count)
@@ -301,18 +300,23 @@ virtual_address find_first_free_region(uint64_t count)
     auto pml4e = entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
                                     RECURSIVE_PSE_INDEX, pml4_idx);
     allocate_paging_structure_entry(pml4e);
+    invalidate_page(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
+                    RECURSIVE_PSE_INDEX, pml4_idx);
 
     for (offset pdpt_idx = 0; pdpt_idx < 512; pdpt_idx++)
     {
       auto pdpte = entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
                                       pml4_idx, pdpt_idx);
       allocate_paging_structure_entry(pdpte);
+      invalidate_page(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX, pml4_idx,
+                      pdpt_idx);
 
       for (offset pd_idx = 0; pd_idx < 512; pd_idx++)
       {
         auto pde =
             entry_from_indices(RECURSIVE_PSE_INDEX, pml4_idx, pdpt_idx, pd_idx);
         allocate_paging_structure_entry(pde);
+        invalidate_page(RECURSIVE_PSE_INDEX, pml4_idx, pdpt_idx, pd_idx);
 
         for (offset pt_idx = 0; pt_idx < 512; pt_idx++)
         {
@@ -349,6 +353,16 @@ virtual_address find_first_free_region(uint64_t count)
   }
 
   return 0; // no free :(
+}
+
+void invalidate_page(virtual_address addr)
+{
+  asm volatile("invlpg (%0)" ::"r"(addr) : "memory");
+}
+
+void invalidate_page(offset pml4, offset pdpt, offset pd, offset pt)
+{
+  invalidate_page(vaddr_from_indices(pml4, pdpt, pd, pt));
 }
 
 constexpr virtual_address vaddr_from_indices(offset pml4, offset pdpt,
