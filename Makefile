@@ -4,6 +4,7 @@ KERNEL := odyssey
 CXXFLAGS = \
 	-Wall \
 	-Wextra \
+	-Wno-missing-field-initializers \
 	-std=gnu++20 \
 	-ffreestanding \
 	-fno-stack-protector \

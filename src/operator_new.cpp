@@ -2,12 +2,12 @@
 
 #include <cstddef>
 
-void *operator new(size_t bytes)
+void *operator new(uint64_t bytes)
 {
   return memory::heap::allocate(bytes);
 }
 
-void *operator new[](size_t bytes)
+void *operator new[](uint64_t bytes)
 {
   return memory::heap::allocate(bytes);
 }
@@ -18,6 +18,16 @@ void operator delete(void *block) noexcept
 }
 
 void operator delete[](void *block) noexcept
+{
+  memory::heap::deallocate(block);
+}
+
+void operator delete(void *block, uint64_t) noexcept
+{
+  memory::heap::deallocate(block);
+}
+
+void operator delete[](void *block, uint64_t) noexcept
 {
   memory::heap::deallocate(block);
 }

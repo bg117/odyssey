@@ -11,7 +11,7 @@
 #include <cstring>
 
 extern kernel::info INFO;
-extern char FONT;
+extern graphics::psf FONT;
 
 enum class printf_status
 {
@@ -62,7 +62,7 @@ void initialize()
 {
   line = column = 0;
   fb            = &INFO.framebuffer.info;
-  font          = reinterpret_cast<psf *>(&FONT);
+  font          = &FONT;
 
   MAX_COLUMNS = fb->width / font->width;
   MAX_LINES   = fb->height / font->height;
