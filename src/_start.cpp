@@ -38,6 +38,13 @@ volatile struct limine_hhdm_request hhdm_request   = {.id = LIMINE_HHDM_REQUEST,
 extern "C" void _start()
 {
   asm volatile("movq %%rsp, %0" : "=m"(INFO.stack.location));
+  asm volatile("mov %cr0, %rax;"
+               "and $0xFFFB, %ax;"
+               "or $0x2, %rax;"
+               "mov %rax, %cr0;"
+               "mov %cr4, %rax;"
+               "or $0x600, %ax;"
+               "mov %rax, %cr4;");
   INFO.stack.size = ss_request.stack_size;
 
   // we got nowhere to write on
