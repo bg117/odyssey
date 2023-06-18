@@ -135,7 +135,7 @@ void *allocate(uint16_t count)
       auto pte =
           entry_from_indices(pml4_offset(region_off), pdpt_offset(region_off),
                              pd_offset(region_off), pt_offset(region_off));
-      pte->available_1 = count & 0x7FF;      // lower 11 bits
+      pte->available_1 = count & 0x7FF;       // lower 11 bits
       pte->available_0 = (count >> 11) & 0x7; // upper 3 bits
     }
   }
@@ -278,9 +278,9 @@ void allocate_paging_structure_entry(memory::paging_structure_entry *pse)
 memory::paging_structure_entry *entry_from_indices(offset pdpt, offset pd,
                                                    offset pt, offset pte)
 {
-  const virtual_address table_addr =
-      0xffff000000000000 | 510ull << 39 | pdpt << 30 | pd << 21 | pt << 12;
-  return reinterpret_cast<memory::paging_structure_entry *>(table_addr) + pte;
+  const auto table_addr = vaddr_from_indices(510, pdpt, pd, pt) +
+                          pte * sizeof(memory::paging_structure_entry);
+  return reinterpret_cast<memory::paging_structure_entry *>(table_addr);
 }
 
 void reload_cr3()
