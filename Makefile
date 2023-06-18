@@ -29,6 +29,7 @@ LDFLAGS := \
 	-static \
 	-melf_x86_64 \
 	-zmax-page-size=4096 \
+	-znoexecstack \
 	-Tlinker.lds
 
 CXX := g++
