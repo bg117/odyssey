@@ -68,7 +68,7 @@ void *allocate(const uint64_t bytes)
       auto start   = entity_lists[i].first;
       auto current = start;
 
-      while (true)
+      while (current != nullptr)
       {
         // if current entity is not used and can fit rounded_bytes (or more)
         // bytes of data
@@ -81,12 +81,6 @@ void *allocate(const uint64_t bytes)
 
         // move to next entity
         current = current->next;
-
-        // if at end of entity list, move to next entity list
-        if (current == nullptr)
-        {
-          break;
-        }
       }
 
       if (found)
