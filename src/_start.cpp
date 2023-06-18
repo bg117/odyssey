@@ -38,6 +38,7 @@ volatile struct limine_hhdm_request hhdm_request   = {.id = LIMINE_HHDM_REQUEST,
 extern "C" void _start()
 {
   asm volatile("movq %%rsp, %0" : "=m"(INFO.stack.location));
+  // enable SSE
   asm volatile("mov %cr0, %rax;"
                "and $0xFFFB, %ax;"
                "or $0x2, %rax;"
