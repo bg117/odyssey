@@ -24,7 +24,6 @@ void allocate_paging_structure_entry(memory::paging_structure_entry *pse);
 
 void reload_cr3();
 void invalidate_page(virtual_address addr);
-void invalidate_page(offset pml4, offset pdpt, offset pd, offset pt);
 
 virtual_address find_first_free_region(uint16_t count = 1);
 
@@ -272,6 +271,11 @@ void allocate_paging_structure_entry(memory::paging_structure_entry *pse)
       pse->base_addr =
           reinterpret_cast<physical_address>(memory::pmm::allocate()) >> 12;
     }
+
+    if (initialized)
+    {
+      invalidate_page(reinterpret_cast<virtual_address>(pse));
+    }
   }
 }
 
@@ -300,23 +304,18 @@ virtual_address find_first_free_region(uint16_t count)
     auto pml4e = entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
                                     RECURSIVE_PSE_INDEX, pml4_idx);
     allocate_paging_structure_entry(pml4e);
-    invalidate_page(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
-                    RECURSIVE_PSE_INDEX, pml4_idx);
 
     for (offset pdpt_idx = 0; pdpt_idx < 512; pdpt_idx++)
     {
       auto pdpte = entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
                                       pml4_idx, pdpt_idx);
       allocate_paging_structure_entry(pdpte);
-      invalidate_page(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX, pml4_idx,
-                      pdpt_idx);
 
       for (offset pd_idx = 0; pd_idx < 512; pd_idx++)
       {
         auto pde =
             entry_from_indices(RECURSIVE_PSE_INDEX, pml4_idx, pdpt_idx, pd_idx);
         allocate_paging_structure_entry(pde);
-        invalidate_page(RECURSIVE_PSE_INDEX, pml4_idx, pdpt_idx, pd_idx);
 
         for (offset pt_idx = 0; pt_idx < 512; pt_idx++)
         {
@@ -358,11 +357,6 @@ virtual_address find_first_free_region(uint16_t count)
 void invalidate_page(virtual_address addr)
 {
   asm volatile("invlpg (%0)" ::"r"(addr) : "memory");
-}
-
-void invalidate_page(offset pml4, offset pdpt, offset pd, offset pt)
-{
-  invalidate_page(vaddr_from_indices(pml4, pdpt, pd, pt));
 }
 
 constexpr virtual_address vaddr_from_indices(offset pml4, offset pdpt,
