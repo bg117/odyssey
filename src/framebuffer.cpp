@@ -4,6 +4,7 @@
 #include "kernel/info.hpp"
 #include "misc/config.hpp"
 #include "misc/convert.hpp"
+#include "misc/round.hpp"
 #include "misc/types.hpp"
 
 #include <cstdarg>
@@ -92,7 +93,7 @@ void print(const char c)
     }
     break;
   case '\t':
-    column = (column + 8 - 1) & -8; // round to nearest 8
+    column = round::up(column, 8); // round to nearest 8
     if (column >= MAX_COLUMNS)
     {
       offset over = column - MAX_COLUMNS;

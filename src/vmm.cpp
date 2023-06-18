@@ -26,7 +26,7 @@ void reload_cr3();
 void invalidate_page(virtual_address addr);
 void invalidate_page(offset pml4, offset pdpt, offset pd, offset pt);
 
-virtual_address find_first_free_region(uint64_t count = 1);
+virtual_address find_first_free_region(uint16_t count = 1);
 
 memory::paging_structure_entry *entry_from_indices(offset pdpt, offset pd,
                                                    offset pt, offset pte);
@@ -95,7 +95,7 @@ void initialize()
   reload_cr3();
 }
 
-void *allocate(uint32_t count)
+void *allocate(uint16_t count)
 {
   if (count == 0)
   {
@@ -103,7 +103,7 @@ void *allocate(uint32_t count)
     return 0;
   }
 
-  // max 2^18 consec. pages (available bits)
+  // max 2^14 consec. pages (available bits)
   if (count > CONSECUTIVE_ADDR_LIMIT)
   {
     LOG("warning: will not allocate more than %u consecutive pages of virtual "
@@ -289,7 +289,7 @@ void reload_cr3()
       pml4)); // load CR3 with memory address of PML4 (load into register first)
 }
 
-virtual_address find_first_free_region(uint64_t count)
+virtual_address find_first_free_region(uint16_t count)
 {
   counter consec_count                            = 0;
   virtual_address consec_base                     = 0;

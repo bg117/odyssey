@@ -32,14 +32,5 @@ void kmain()
   memory::vmm::initialize();
   memory::heap::initialize();
 
-  for (int i = 1; i <= 20; i++)
-  {
-    void *alloc =  memory::heap::allocate(i * 2 + 1000);
-    LOG("test heap alloc[%d]: %p", i, alloc);
-  }
-  for (int i = 21; i <= 30; i++)
-  {
-    void *alloc =  memory::heap::allocate(i * 2);
-    LOG("test heap alloc[%d]: %p", i, alloc);
-  }
+  memory::heap::allocate(0);
 }

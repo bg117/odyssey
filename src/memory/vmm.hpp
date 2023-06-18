@@ -8,7 +8,7 @@ namespace vmm
 {
 void initialize();
 
-void *allocate(uint32_t count = 1);
+void *allocate(uint16_t count = 1);
 void deallocate(void *page);
 }
 } // namespace memory

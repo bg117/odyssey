@@ -3,20 +3,22 @@
 #include "kernel/info.hpp"
 #include "memory/vmm.hpp"
 #include "misc/log.hpp"
+#include "misc/round.hpp"
 
 #include <cstddef>
 #include <cstring>
 
-struct heap_entity_list
-{
-  void *entity_list;
-  uint64_t page_count;
-};
-
 struct __attribute__((aligned(alignof(max_align_t)))) heap_entity
 {
+  heap_entity *next, *prev;
   uint64_t size;
   bool used;
+};
+
+struct heap_entity_list
+{
+  heap_entity *first;
+  uint64_t page_count;
 };
 
 namespace
@@ -25,10 +27,12 @@ heap_entity_list *entity_lists;
 uint64_t entity_list_count;
 uint64_t entity_lists_page_count;
 
+constexpr uint64_t ALIGN       = alignof(max_align_t);
 constexpr uint64_t ENTITY_SIZE = sizeof(heap_entity);
 
 bool add_new_entity_list(uint64_t page_count);
 void split_entity(heap_entity *entity, uint64_t size);
+void merge_free_entities(heap_entity *start);
 } // namespace
 
 namespace memory
@@ -45,9 +49,13 @@ void initialize()
 
 void *allocate(const uint64_t bytes)
 {
-  const uint64_t rounded_bytes = (bytes + ENTITY_SIZE - 1) & -ENTITY_SIZE;
-  const uint64_t bytes_page =
-      ((rounded_bytes + PAGE_SIZE - 1) & -PAGE_SIZE) / PAGE_SIZE;
+  if (bytes == 0)
+  {
+    return nullptr;
+  }
+
+  const uint64_t rounded_bytes = round::up(bytes, ALIGN);
+  const uint64_t bytes_page = round::up(rounded_bytes, PAGE_SIZE) / PAGE_SIZE;
 
   bool done  = false;
   bool found = false;
@@ -57,7 +65,7 @@ void *allocate(const uint64_t bytes)
   {
     for (uint64_t i = 0; i < entity_list_count; i++)
     {
-      auto start = reinterpret_cast<heap_entity *>(entity_lists[i].entity_list);
+      auto start   = entity_lists[i].first;
       auto current = start;
 
       while (true)
@@ -72,14 +80,10 @@ void *allocate(const uint64_t bytes)
         }
 
         // move to next entity
-        auto next = reinterpret_cast<virtual_address>(current) + current->size +
-                    ENTITY_SIZE;
-        current = reinterpret_cast<heap_entity *>(next);
+        current = current->next;
 
         // if at end of entity list, move to next entity list
-        offset loc = reinterpret_cast<virtual_address>(current) -
-                     reinterpret_cast<virtual_address>(start);
-        if (loc >= entity_lists[i].page_count * PAGE_SIZE)
+        if (current == nullptr)
         {
           break;
         }
@@ -114,7 +118,7 @@ void *allocate(const uint64_t bytes)
   }
 
   entity->used = true;
-  if (entity->size > rounded_bytes + ENTITY_SIZE)
+  if (entity->size > rounded_bytes + ENTITY_SIZE && entity->size % ALIGN == 0)
   {
     split_entity(entity, rounded_bytes);
   }
@@ -125,7 +129,9 @@ void *allocate(const uint64_t bytes)
 
 void deallocate(void *block)
 {
-  LOG("deallocate %p", block);
+  auto entity  = reinterpret_cast<heap_entity *>(block) - 1;
+  entity->used = 0;
+  merge_free_entities(entity);
 }
 } // namespace heap
 } // namespace memory
@@ -136,7 +142,7 @@ bool add_new_entity_list(uint64_t page_count)
 {
   entity_list_count++;
   const uint64_t new_entity_list_page_count =
-      ((entity_list_count + PAGE_SIZE - 1) & -PAGE_SIZE) / PAGE_SIZE;
+      round::up(entity_list_count, PAGE_SIZE) / PAGE_SIZE;
 
   if (new_entity_list_page_count > entity_lists_page_count)
   {
@@ -153,18 +159,19 @@ bool add_new_entity_list(uint64_t page_count)
     entity_lists = reinterpret_cast<heap_entity_list *>(reloc);
   }
 
-  void *entity_list = memory::vmm::allocate(page_count);
-  if (entity_list == nullptr)
+  auto first_entity =
+      reinterpret_cast<heap_entity *>(memory::vmm::allocate(page_count));
+  if (first_entity == nullptr)
   {
     return false;
   }
 
-  entity_lists[entity_list_count - 1].entity_list = entity_list;
-  entity_lists[entity_list_count - 1].page_count  = page_count;
-
-  auto first_entity  = reinterpret_cast<heap_entity *>(entity_list);
   first_entity->used = 0;
   first_entity->size = page_count * PAGE_SIZE - ENTITY_SIZE;
+  first_entity->next = first_entity->prev = nullptr;
+
+  entity_lists[entity_list_count - 1].first      = first_entity;
+  entity_lists[entity_list_count - 1].page_count = page_count;
 
   return true;
 }
@@ -179,5 +186,38 @@ void split_entity(heap_entity *entity, uint64_t size)
   b2->size = b1->size - size - ENTITY_SIZE;
   b2->used = false;
   b1->size = size;
+
+  // make b2->prev point to b1, b2->next point to what b1->next was pointing
+  b2->prev = b1;
+  b2->next = b1->next;
+  b1->next = b2;
+}
+
+void merge_free_entities(heap_entity *start)
+{
+  if (start == nullptr)
+  {
+    return;
+  }
+
+  auto p = start;
+  // merge free blocks after
+  while (p->next != nullptr && !p->next->used)
+  {
+    auto next = p->next;
+    p->next   = next->next;
+    p->size += next->size + ENTITY_SIZE;
+
+    // we don't need to assign p = next since it merges the block after it
+  }
+
+  // merge free blocks before
+  while (p->prev != nullptr && !p->prev->used)
+  {
+    auto prev  = p->prev;
+    prev->next = p->next;
+    prev->size += p->size + ENTITY_SIZE;
+    p = prev;
+  }
 }
 } // namespace
