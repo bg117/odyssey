@@ -17,7 +17,7 @@ void make_descriptor(descriptor &desc, entry *gdt, uint16_t size)
 
 void load(descriptor &desc, uint16_t code_selector, uint16_t data_selector)
 {
-  asm volatile("lgdt (%0);" // load GDT descriptor to GDTR
+  asm volatile("lgdt (%0);"       // load GDT descriptor to GDTR
                "movw %1, %%ax;"
                "movw %%ax, %%ds;" // reload all data segment registers
                "movw %%ax, %%es;"

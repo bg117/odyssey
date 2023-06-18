@@ -31,6 +31,4 @@ void kmain()
   memory::pmm::initialize();
   memory::vmm::initialize();
   memory::heap::initialize();
-
-  memory::heap::allocate(0);
 }
