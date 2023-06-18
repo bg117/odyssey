@@ -224,7 +224,7 @@ __attribute__((format(printf, 1, 2))) void printf(const char *fmt, ...)
         graphics::framebuffer::printf("0x");
         printf_receive_arg_unsigned(printf_length::ll, ap, num, 16);
         printf_pad(printf_pad_type::zero, 16, num);
-        graphics::framebuffer::print(num);
+        graphics::framebuffer::print(convert::string_to_upper(num));
         break;
       case 'o':
         printf_receive_arg_unsigned(length, ap, num, 16);
