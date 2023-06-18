@@ -40,17 +40,17 @@ FONTS := $(wildcard fonts/*.psf)
 OBJS := $(SRCS:.cpp=.o) $(FONTS:.psf=.o)
 DEPS := $(SRCS:.cpp=.d)
 
-.PHONY: all hdd-img kernel clean
+.PHONY: all kernel hdd-img clean
 
 all: kernel hdd-img
 
 kernel: $(KERNEL)
 
 hdd-img:
-	bash -x ./hdd-img.sh
+	sh -v ./hdd-img.sh
 
 clean:
-	rm -rf $(KERNEL) $(OBJS) $(DEPS) $(KERNEL).img
+	rm -rf $(KERNEL) $(OBJS) $(DEPS) $(KERNEL).img root/
 
 $(KERNEL): $(OBJS)
 	ld $(LDFLAGS) $^ -o $@
