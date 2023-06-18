@@ -55,7 +55,7 @@ void *allocate(const uint64_t bytes)
   }
 
   const uint64_t rounded_bytes = round::up(bytes, ALIGN);
-  const uint64_t bytes_page = round::up(rounded_bytes, PAGE_SIZE) / PAGE_SIZE;
+  const uint64_t bytes_page = round::up(rounded_bytes + ENTITY_SIZE, PAGE_SIZE) / PAGE_SIZE;
 
   bool done  = false;
   bool found = false;

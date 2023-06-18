@@ -28,35 +28,35 @@ LDFLAGS := \
 	-static \
 	-melf_x86_64 \
 	-zmax-page-size=4096 \
-	-Tlinker.lds \
+	-Tlinker.lds
 
 CXX := g++
 LD := ld
 
-SRCS_CXX := $(wildcard src/*.cpp)
+SRCS := $(wildcard src/*.cpp)
 FONTS := $(wildcard fonts/*.psf)
-OBJS := $(SRCS_CXX:.cpp=.o) $(FONTS:.psf=.o)
-DEPS := $(SRCS_CXX:.cpp=.d)
+OBJS := $(SRCS:.cpp=.o) $(FONTS:.psf=.o)
+DEPS := $(SRCS:.cpp=.d)
 
 .PHONY: all hdd-img kernel clean
 
 all: kernel hdd-img
 
+kernel: $(KERNEL)
+
 hdd-img:
 	bash -x ./hdd-img.sh
-
-kernel: $(KERNEL)
 
 clean:
 	rm -rf $(KERNEL) $(OBJS) $(DEPS) $(KERNEL).img
 
 $(KERNEL): $(OBJS)
-	$(LD) $^ $(LDFLAGS) -o $@
+	ld $(LDFLAGS) $^ -o $@
 
 -include $(DEPS)
 
-src/%.o: src/%.cpp
-	$(CXX) $< $(CXXFLAGS) $(CPPFLAGS) -c -o $@
-
 fonts/%.o: fonts/%.psf
 	objcopy -O elf64-x86-64 -I binary $< $@
+
+src/%.o: src/%.cpp
+	g++  $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
