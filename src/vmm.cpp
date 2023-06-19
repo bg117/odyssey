@@ -3,7 +3,9 @@
 #include "kernel/info.hpp"
 #include "memory/paging_structure.hpp"
 #include "memory/pmm.hpp"
+#include "misc/flag.hpp"
 #include "misc/log.hpp"
+#include "misc/round.hpp"
 #include "misc/types.hpp"
 
 extern kernel::info INFO;
@@ -53,13 +55,9 @@ void initialize()
       reinterpret_cast<physical_address>(pml4) >> 12;
 
   // get some info about stuff
-  const uint64_t rounded_kernel_size =
-      (INFO.kernel.size + PAGE_SIZE - 1) &
-      -PAGE_SIZE; // -PAGE_SIZE is equivalent to ~(PAGE_SIZE - 1)
-  const uint64_t rounded_fb_size =
-      (INFO.framebuffer.size + PAGE_SIZE - 1) & -PAGE_SIZE;
-  const uint64_t rounded_stack_loc =
-      (INFO.stack.location + PAGE_SIZE - 1) & -PAGE_SIZE;
+  const uint64_t rounded_kernel_size = round::up(INFO.kernel.size, PAGE_SIZE);
+  const uint64_t rounded_fb_size = round::up(INFO.framebuffer.size, PAGE_SIZE);
+  const uint64_t rounded_stack_loc = round::up(INFO.stack.location, PAGE_SIZE);
 
   LOG("mapping kernel into higher half");
   for (counter i = 0; i < rounded_kernel_size; i += PAGE_SIZE)
@@ -154,8 +152,8 @@ void deallocate(void *page)
        pte   = entry_from_indices(pml4_offset(addr), pdpt_offset(addr),
                                   pd_offset(addr), pt_offset(addr));
   // if any structure in the hierarchy is not actually present then abort
-  if (!((pml4e->flags & 0x1) && (pdpte->flags & 0x1) && (pde->flags & 0x1) &&
-        (pte->flags & 0x1)))
+  if (!(flag::is_set(pml4e->flags, 1) && flag::is_set(pdpte->flags, 1) &&
+        flag::is_set(pde->flags, 1) && flag::is_set(pte->flags, 1)))
   {
     LOG("error: page 0x%016lX not allocated", addr);
     return; // false alarm ._.
@@ -262,7 +260,7 @@ void map_page_uninitialized(physical_address phys, virtual_address virt)
 void allocate_paging_structure_entry(memory::paging_structure_entry *pse)
 {
   // 0x1 is PRESENT bit
-  if (!(pse->flags & 0x01))
+  if (!flag::is_set(pse->flags, 1))
   {
     pse->flags = 0x03; // 0b01 | 0b10 == 0b11 (0x3) (PRESENT | WRITABLE)
     // if struct.base_addr is not set, allocate new
@@ -320,7 +318,7 @@ virtual_address find_first_free_region(uint16_t count)
         for (offset pt_idx = 0; pt_idx < 512; pt_idx++)
         {
           auto pte = entry_from_indices(pml4_idx, pdpt_idx, pd_idx, pt_idx);
-          if (!(pte->flags & 0x1))
+          if (!flag::is_set(pte->flags, 1))
           {
             // if 0 consecutive virtual addresses and encounter a free entry,
             // set base

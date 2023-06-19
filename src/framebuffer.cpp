@@ -259,7 +259,7 @@ namespace
 {
 void print_bare(const char c)
 {
-  offset bytes_per_row = ((font->width + 8 - 1) & -8) / 8;
+  offset bytes_per_row = round::up(font->width, 8) / 8;
   offset glyph_offset  = font->header_size + c * font->bytes_per_glyph;
   auto glyph           = reinterpret_cast<uint8_t *>(font) + glyph_offset;
 

@@ -3,7 +3,9 @@
 #include "graphics/framebuffer.hpp"
 #include "kernel/info.hpp"
 #include "limine.h"
+#include "misc/flag.hpp"
 #include "misc/log.hpp"
+#include "misc/round.hpp"
 
 #include <cstring>
 
@@ -53,7 +55,7 @@ void initialize()
 
   // get amount of pages needed for the bitmap
   bitmap_size =
-      ((top_address - free_start) / PAGE_SIZE / 8 + PAGE_SIZE - 1) & -PAGE_SIZE;
+      round::up((top_address - free_start) / PAGE_SIZE / 8, PAGE_SIZE);
   LOG("bitmap size is %lu bytes", bitmap_size);
 
   // find a large enough free area for the bitmap that doesn't overlap with
@@ -103,7 +105,7 @@ void initialize()
       auto idx = (addr - free_start) / PAGE_SIZE;
 
       // set the page as free
-      bitmap[idx / 64] &= ~(1 << (idx % 64));
+      flag::unset(bitmap[idx / 64], 1 << (idx % 64));
       free_amount++;
     }
   }
@@ -117,7 +119,8 @@ void initialize()
     auto idx = (reinterpret_cast<uint64_t>(bitmap) -
                 INFO.higher_half_direct_offset + i * PAGE_SIZE - free_start) /
                PAGE_SIZE;
-    bitmap[idx / 64] |= (1 << (idx % 64));
+
+    flag::set(bitmap[idx / 64], 1 << (idx % 64));
   }
 
   free_amount -= bitmap_pages;
@@ -143,18 +146,18 @@ void *allocate()
   counter i = 0;
   for (; i < free_limit; i++)
   {
-    if (!(bitmap[i / 64] & (1 << (i % 64))))
+    if (!flag::is_set(bitmap[i / 64], 1 << (i % 64)))
     {
       break;
     }
   }
 
   // set the block as used
-  bitmap[i / 64] |= (1 << (i % 64));
+  flag::set(bitmap[i / 64], 1 << (i % 64));
   free_amount--;
 
   auto block = reinterpret_cast<void *>(free_start + i * PAGE_SIZE);
-  //LOG("allocated block %p", block);
+  // LOG("allocated block %p", block);
 
   // return the address of the block
   return block;
@@ -178,9 +181,9 @@ void deallocate(void *page)
   auto i = (reinterpret_cast<physical_address>(page) - free_start) / PAGE_SIZE;
 
   // set the block as free
-  bitmap[i / 64] &= ~(1 << (i % 64));
+  flag::unset(bitmap[i / 64], 1 << (i % 64));
 
-  //LOG("freed %p", page);
+  // LOG("freed %p", page);
 }
 } // namespace pmm
 } // namespace memory
