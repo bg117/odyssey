@@ -118,6 +118,12 @@ void *allocate(const uint64_t bytes)
 
 void deallocate(void *block)
 {
+  if (block == nullptr)
+  {
+    LOG("error: cannot free null pointer");
+    return;
+  }
+
   auto entity  = reinterpret_cast<heap_entity *>(block) - 1;
   entity->used = 0;
   merge_free_entities(entity);
