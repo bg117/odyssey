@@ -18,14 +18,12 @@ low_level::gdt::entry gdt[] = {
     {0, 0, 0, 0xf2, 0, 0, 0},
     {0, 0, 0, 0xfa, 0, 2, 0},
 };
-low_level::gdt::descriptor gdt_desc;
+low_level::gdt::descriptor gdt_desc = {.limit = sizeof(gdt) - 1, .base = gdt};
 } // namespace
 
 void kmain()
 {
   graphics::framebuffer::initialize();
-
-  low_level::gdt::make_descriptor(gdt_desc, gdt, 9);
   low_level::gdt::load(gdt_desc, 0x28, 0x30);
 
   memory::pmm::initialize();

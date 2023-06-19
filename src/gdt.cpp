@@ -7,13 +7,6 @@ namespace low_level
 {
 namespace gdt
 {
-void make_descriptor(descriptor &desc, entry *gdt, uint16_t size)
-{
-  desc.limit = sizeof(entry) * size - 1;
-  desc.base  = reinterpret_cast<virtual_address>(gdt);
-  LOG("created GDT descriptor: limit=0x%hX, base=0x%016lX", desc.limit,
-      desc.base);
-}
 
 void load(descriptor &desc, uint16_t code_selector, uint16_t data_selector)
 {
