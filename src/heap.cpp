@@ -63,7 +63,7 @@ void *allocate(const uint64_t bytes)
 
   while (!done)
   {
-    for (uint64_t i = 0; i < entity_list_count || found; i++)
+    for (uint64_t i = 0; i < entity_list_count && !found; i++)
     {
       auto start   = entity_lists[i].first;
       auto current = start;
