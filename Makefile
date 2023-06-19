@@ -35,10 +35,11 @@ LDFLAGS := \
 CXX := g++
 LD := ld
 
-SRCS := $(wildcard src/*.cpp)
+SRCS_CXX := $(wildcard src/*.cpp)
+SRCS_S := $(wildcard src/*.S)
 FONTS := $(wildcard fonts/*.psf)
-OBJS := $(SRCS:.cpp=.o) $(FONTS:.psf=.o)
-DEPS := $(SRCS:.cpp=.d)
+OBJS := $(SRCS_CXX:.cpp=.o) $(SRCS_S:.S=.o) $(FONTS:.psf=.o)
+DEPS := $(SRCS_CXX:.cpp=.d)
 
 .PHONY: all kernel hdd-img clean
 
@@ -61,4 +62,7 @@ fonts/%.o: fonts/%.psf
 	objcopy -O elf64-x86-64 -I binary $< $@
 
 src/%.o: src/%.cpp
-	g++  $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
+	g++ $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
+
+src/%.o: src/%.S
+	g++ $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
