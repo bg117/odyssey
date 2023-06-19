@@ -20,10 +20,9 @@ struct entry
 struct descriptor
 {
   uint16_t limit;
-  uint64_t base;
+  entry *base;
 } __attribute__((packed));
 
-void make_descriptor(descriptor &desc, entry *gdt, uint16_t size);
 void load(descriptor &desc, uint16_t code_selector, uint16_t data_selector);
 } // namespace gdt
 

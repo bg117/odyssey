@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 namespace flag
 {
 constexpr inline bool is_set(uint64_t n, uint64_t flag)
