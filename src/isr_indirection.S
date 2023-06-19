@@ -32,6 +32,15 @@ interrupt_intermediary:
   push %r14
   push %r15
 
+  mov %cr0, %rax
+  push %rax
+  mov %cr2, %rax
+  push %rax
+  mov %cr3, %rax
+  push %rax
+  mov %cr4, %rax
+  push %rax
+
   xor %rax, %rax
   mov %ds, %ax
 
@@ -44,6 +53,11 @@ interrupt_intermediary:
   mov %rsp,%rdi // pointer to interrupt info
   
   call exception_handler
+
+  pop %rax
+  pop %rax
+  pop %rax
+  pop %rax
 
   pop %r15
   pop %r14
