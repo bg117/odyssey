@@ -305,12 +305,12 @@ void initialize(idt::entry idt[256])
       reinterpret_cast<virtual_address>(interrupt_stub_3) & 0xFFFF;
   idt[3].offset_hi = reinterpret_cast<virtual_address>(interrupt_stub_3) >> 16;
   idt[3].cs        = 0x28;
-  idt[3].type      = 0x8E;
+  idt[3].type      = 0x8F;
   idt[4].offset_low =
       reinterpret_cast<virtual_address>(interrupt_stub_4) & 0xFFFF;
   idt[4].offset_hi = reinterpret_cast<virtual_address>(interrupt_stub_4) >> 16;
   idt[4].cs        = 0x28;
-  idt[4].type      = 0x8E;
+  idt[4].type      = 0x8F;
   idt[5].offset_low =
       reinterpret_cast<virtual_address>(interrupt_stub_5) & 0xFFFF;
   idt[5].offset_hi = reinterpret_cast<virtual_address>(interrupt_stub_5) >> 16;
@@ -330,7 +330,7 @@ void initialize(idt::entry idt[256])
       reinterpret_cast<virtual_address>(interrupt_stub_8) & 0xFFFF;
   idt[8].offset_hi = reinterpret_cast<virtual_address>(interrupt_stub_8) >> 16;
   idt[8].cs        = 0x28;
-  idt[8].type      = 0x8F;
+  idt[8].type      = 0x8E;
   idt[9].offset_low =
       reinterpret_cast<virtual_address>(interrupt_stub_9) & 0xFFFF;
   idt[9].offset_hi = reinterpret_cast<virtual_address>(interrupt_stub_9) >> 16;
@@ -341,31 +341,31 @@ void initialize(idt::entry idt[256])
   idt[10].offset_hi =
       reinterpret_cast<virtual_address>(interrupt_stub_10) >> 16;
   idt[10].cs   = 0x28;
-  idt[10].type = 0x8F;
+  idt[10].type = 0x8E;
   idt[11].offset_low =
       reinterpret_cast<virtual_address>(interrupt_stub_11) & 0xFFFF;
   idt[11].offset_hi =
       reinterpret_cast<virtual_address>(interrupt_stub_11) >> 16;
   idt[11].cs   = 0x28;
-  idt[11].type = 0x8F;
+  idt[11].type = 0x8E;
   idt[12].offset_low =
       reinterpret_cast<virtual_address>(interrupt_stub_12) & 0xFFFF;
   idt[12].offset_hi =
       reinterpret_cast<virtual_address>(interrupt_stub_12) >> 16;
   idt[12].cs   = 0x28;
-  idt[12].type = 0x8F;
+  idt[12].type = 0x8E;
   idt[13].offset_low =
       reinterpret_cast<virtual_address>(interrupt_stub_13) & 0xFFFF;
   idt[13].offset_hi =
       reinterpret_cast<virtual_address>(interrupt_stub_13) >> 16;
   idt[13].cs   = 0x28;
-  idt[13].type = 0x8F;
+  idt[13].type = 0x8E;
   idt[14].offset_low =
       reinterpret_cast<virtual_address>(interrupt_stub_14) & 0xFFFF;
   idt[14].offset_hi =
       reinterpret_cast<virtual_address>(interrupt_stub_14) >> 16;
   idt[14].cs   = 0x28;
-  idt[14].type = 0x8F;
+  idt[14].type = 0x8E;
   idt[15].offset_low =
       reinterpret_cast<virtual_address>(interrupt_stub_15) & 0xFFFF;
   idt[15].offset_hi =
@@ -383,7 +383,7 @@ void initialize(idt::entry idt[256])
   idt[17].offset_hi =
       reinterpret_cast<virtual_address>(interrupt_stub_17) >> 16;
   idt[17].cs   = 0x28;
-  idt[17].type = 0x8F;
+  idt[17].type = 0x8E;
   idt[18].offset_low =
       reinterpret_cast<virtual_address>(interrupt_stub_18) & 0xFFFF;
   idt[18].offset_hi =
@@ -407,7 +407,7 @@ void initialize(idt::entry idt[256])
   idt[21].offset_hi =
       reinterpret_cast<virtual_address>(interrupt_stub_21) >> 16;
   idt[21].cs   = 0x28;
-  idt[21].type = 0x8F;
+  idt[21].type = 0x8E;
   idt[22].offset_low =
       reinterpret_cast<virtual_address>(interrupt_stub_22) & 0xFFFF;
   idt[22].offset_hi =
