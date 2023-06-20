@@ -6,7 +6,8 @@ namespace graphics
 {
 namespace framebuffer
 {
-void initialize();
+void initialize(const char *font_name = "default");
+void set_font(const char *font_name);
 void set_pixel(offset x, offset y, uint32_t bpp32);
 uint32_t get_pixel(offset x, offset y);
 

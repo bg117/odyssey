@@ -58,7 +58,7 @@ $(KERNEL): $(OBJS)
 -include $(DEPS)
 
 fonts/%.o: fonts/%.psf
-	objcopy -O elf64-x86-64 -I binary $< $@
+	python3 compile_font.py $< $@
 
 src/%.o: src/%.cpp
 	g++ $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@

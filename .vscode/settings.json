@@ -3,5 +3,9 @@
     "files.associations": {
         "*.S": "gas",
         "system_error": "c"
-    }
+    },
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.python"
+    },
+    "python.formatting.provider": "none"
 }

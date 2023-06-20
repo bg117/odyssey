@@ -11,7 +11,7 @@
 #include <cstring>
 
 extern kernel::info INFO;
-extern graphics::psf FONT;
+extern char __fb_fonts_start, __fb_fonts_end;
 
 enum class printf_status
 {
@@ -58,11 +58,35 @@ namespace graphics
 {
 namespace framebuffer
 {
-void initialize()
+void initialize(const char *font_name)
 {
   line = column = 0;
   fb            = &INFO.framebuffer.info;
-  font          = &FONT;
+
+  set_font(font_name);
+}
+
+void set_font(const char *font_name)
+{
+  auto current = &__fb_fonts_start; // .fb_fonts section start
+  // search for font in fb_fonts
+  bool found = false;
+  while (current < &__fb_fonts_end || found)
+  {
+    // if not matching
+    if (memcmp(font_name, current, strlen(font_name)) != 0)
+    {
+      current += strlen(current) + 1; // null terminator
+      // get size of "file"
+      auto size = *reinterpret_cast<uint64_t *>(current);
+      current += size;
+      continue;
+    }
+
+    // go to start of header
+    font = reinterpret_cast<psf *>(current + strlen(font_name) + 1 + 8);
+    found = true;
+  }
 
   MAX_COLUMNS = fb->width / font->width;
   MAX_LINES   = fb->height / font->height;

@@ -34,8 +34,17 @@ SECTIONS
         *(.rodata .rodata.*)
     } :rodata
 
+    . += CONSTANT(MAXPAGESIZE);
+
+    /* framebuffer fonts */
+    __fb_fonts_start = .;
+    .fb_fonts : {
+        *(.fb_fonts)
+    } :rodata
+
     /* Move to the next memory page for .data */
     . += CONSTANT(MAXPAGESIZE);
+    __fb_fonts_end = .;
 
     .data : {
         *(.data .data.*)
