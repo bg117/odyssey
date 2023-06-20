@@ -71,7 +71,7 @@ void set_font(const char *font_name)
   auto current = &__fb_fonts_start; // .fb_fonts section start
   // search for font in fb_fonts
   bool found = false;
-  while (current < &__fb_fonts_end || found)
+  while (!found && current < &__fb_fonts_end)
   {
     // if not matching
     if (memcmp(font_name, current, strlen(font_name)) != 0)
