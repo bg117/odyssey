@@ -91,7 +91,7 @@ void initialize()
   reload_cr3();
 }
 
-void *allocate(uint16_t count)
+void *allocate(uint64_t count)
 {
   if (count == 0)
   {
