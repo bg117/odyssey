@@ -6,3 +6,4 @@ root/
 odyssey
 compile_commands.json
 .cache/
+build

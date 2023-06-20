@@ -10,7 +10,6 @@ CXXFLAGS = \
 	-fno-stack-protector \
 	-fno-stack-check \
 	-fno-strict-aliasing \
-	-fno-tree-loop-distribute-patterns \
 	-fno-PIE \
 	-fno-PIC \
 	-m64 \

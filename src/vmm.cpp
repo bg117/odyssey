@@ -15,8 +15,7 @@ namespace
 memory::paging_structure_entry *pml4;
 bool initialized = false;
 
-constexpr offset RECURSIVE_PSE_INDEX      = 510;
-constexpr uint16_t CONSECUTIVE_ADDR_LIMIT = 0x3fff;
+constexpr offset RECURSIVE_PSE_INDEX = 510;
 
 void map_page(physical_address phys, virtual_address virt);
 void map_page_initialized(physical_address phys, virtual_address virt);
@@ -100,15 +99,6 @@ void *allocate(uint16_t count)
     return 0;
   }
 
-  // max 2^14 consec. pages (available bits)
-  if (count > CONSECUTIVE_ADDR_LIMIT)
-  {
-    LOG("warning: will not allocate more than %u consecutive pages of virtual "
-        "addresses",
-        CONSECUTIVE_ADDR_LIMIT);
-    count = CONSECUTIVE_ADDR_LIMIT;
-  }
-
   // get a free region
   virtual_address region = find_first_free_region(count);
 
@@ -126,15 +116,12 @@ void *allocate(uint16_t count)
     const auto region_off = region + i * PAGE_SIZE;
     map_page(reinterpret_cast<virtual_address>(block), region_off);
 
-    // if base of region, set count of consecutive virtual addresses
-    if (i == 0)
-    {
-      auto pte =
-          entry_from_indices(pml4_offset(region_off), pdpt_offset(region_off),
-                             pd_offset(region_off), pt_offset(region_off));
-      pte->available_1 = count & 0x7FF;       // lower 11 bits
-      pte->available_0 = (count >> 11) & 0x7; // upper 3 bits
-    }
+    auto pte =
+        entry_from_indices(pml4_offset(region_off), pdpt_offset(region_off),
+                           pd_offset(region_off), pt_offset(region_off));
+
+    // fill lower 3 available bits with 0 if not end of chain, else 0x7
+    pte->available_0 = i < count - 1 ? 0 : 0x7;
   }
 
   return reinterpret_cast<void *>(region);
@@ -159,26 +146,27 @@ void deallocate(void *page)
     return; // false alarm ._.
   }
 
-  uint32_t consec_count = pte->available_0 << 15 | pte->available_1;
-  if (consec_count == 0)
-  {
-    LOG("warning: PTE.available_0 | PTE.available_1 of 0x%016lu is 0; freeing "
-        "1 page only",
-        addr);
-    consec_count = 1;
-  }
-
-  for (counter i = 0; i < consec_count; i++)
+  counter i = 0;
+  while (true)
   {
     const auto addr_off = addr + i * PAGE_SIZE;
     pte = entry_from_indices(pml4_offset(addr_off), pdpt_offset(addr_off),
                              pd_offset(addr_off), pt_offset(addr_off));
     // free physical page
     pmm::deallocate(reinterpret_cast<void *>(pte->base_addr << 12));
-    // unset members
-    pte->available_0 = pte->available_1 = 0;
-    pte->flags                          = 0;
-    pte->base_addr                      = 0;
+
+    // unset flags
+    pte->flags     = 0;
+    pte->base_addr = 0;
+
+    // end of chain
+    if (pte->available_0 == 0x7)
+    {
+      pte->available_0 = 0;
+      return;
+    }
+
+    i++;
   }
 }
 } // namespace vmm

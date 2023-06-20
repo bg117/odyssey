@@ -4,17 +4,20 @@
 
 namespace flag
 {
-constexpr inline bool is_set(uint64_t n, uint64_t flag)
+template<typename T>
+constexpr inline bool is_set(T n, uint64_t flag)
 {
   return (n & flag) == flag;
 }
 
-inline uint64_t set(uint64_t &n, uint64_t flag)
+template<typename T>
+inline T set(T &n, uint64_t flag)
 {
   return n |= flag;
 }
 
-inline uint64_t unset(uint64_t &n, uint64_t flag)
+template<typename T>
+inline T unset(T &n, uint64_t flag)
 {
   return n &= ~flag;
 }
