@@ -30,7 +30,7 @@ sudo mkdir -p root/system root/EFI/BOOT
 sudo cp limine.cfg limine/limine.sys root/
 sudo cp limine/BOOTX64.EFI root/EFI/BOOT/
 
-sudo cp odyssey root/system/
+sudo cp build/odyssey root/system/
 
 sudo umount root
 sudo losetup -d "${LOOPBACK}"

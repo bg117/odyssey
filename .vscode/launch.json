@@ -4,7 +4,7 @@
       "name": "(gdb) QEMU attach",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/odyssey",
+      "program": "${workspaceFolder}/build/odyssey",
       "cwd": "${workspaceFolder}",
       "miDebuggerPath": "/usr/bin/gdb",
       "MIMode": "gdb",

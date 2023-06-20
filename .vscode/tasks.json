@@ -5,7 +5,7 @@
       "label": "Build & Run QEMU",
       "type": "shell",
       "isBackground": true,
-      "command": "make && echo QEMU & qemu-system-x86_64 -s -S -hda odyssey.img",
+      "command": "cmake --build build && bash hdd-img.sh && echo QEMU & qemu-system-x86_64 -s -S -hda odyssey.img",
       "problemMatcher": {
         "pattern": {
           "regexp": "^(QEMU)",
