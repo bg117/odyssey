@@ -6,4 +6,7 @@ root/
 odyssey
 compile_commands.json
 .cache/
-build
+build/
+.vs/
+.idea/
+cmake-*-*/
