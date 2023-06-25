@@ -42,7 +42,6 @@ add_executable(odyssey
     src/vmm.cpp
     src/isr_indirection.S
     src/misc/flag.hpp
-    src/misc/config.hpp
     src/misc/convert.hpp
     src/misc/log.hpp
     src/misc/types.hpp
