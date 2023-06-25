@@ -1,15 +1,15 @@
+.section .text
+
 .extern exception_handler
 .global interrupt_intermediary
 
 #define INTSTUB_NOERR(i) \
-  .global interrupt_stub_##i; \
   interrupt_stub_##i: \
     push $0; \
     push $##i; \
     jmp interrupt_intermediary;
 
 #define INTSTUB_ERR(i) \
-  .global interrupt_stub_##i; \
   interrupt_stub_##i: \
     push $##i; \
     jmp interrupt_intermediary;
@@ -334,3 +334,18 @@ INTSTUB_NOERR(252)
 INTSTUB_NOERR(253)
 INTSTUB_NOERR(254)
 INTSTUB_NOERR(255)
+
+.altmacro
+
+.macro intstub_label i
+  .quad interrupt_stub_\i
+.endm
+
+.section .data
+.global interrupt_stub_table
+interrupt_stub_table:
+.set i, 0
+.rept 256
+  intstub_label %i
+  .set i, i+1
+.endr
