@@ -13,7 +13,7 @@ void set_idt_entry_fields(uint8_t vector, void (*stub)(), uint16_t code_segment,
                           uint8_t attributes);
 } // namespace
 
-extern "C" void exception_handler(low_level::isr::interrupt_info *int_info)
+extern "C" void exception_handler(const low_level::isr::interrupt_info *int_info)
 {
   if (handlers[int_info->vector] != nullptr)
   {
@@ -30,12 +30,12 @@ void initialize(idt::entry idt[256])
   ::idt = idt;
   for (counter i = 0; i < 256; i++)
   {
-    uint8_t attributes = i == 3 || i == 4 ? 0x8F : 0x8E;
+    const uint8_t attributes = i == 3 || i == 4 ? 0x8F : 0x8E;
     set_idt_entry_fields(i, interrupt_stub_table[i], 0x28, attributes);
   }
 }
 
-void set_handler(uint8_t vector, handler fn)
+void set_handler(const uint8_t vector, const handler fn)
 {
   handlers[vector] = fn;
 }
@@ -44,11 +44,11 @@ void set_handler(uint8_t vector, handler fn)
 
 namespace
 {
-void set_idt_entry_fields(uint8_t vector, void (*stub)(), uint16_t code_segment,
-                          uint8_t attributes)
+void set_idt_entry_fields(const uint8_t vector, void (*stub)(), const uint16_t code_segment,
+                          const uint8_t attributes)
 {
-  auto addr       = reinterpret_cast<virtual_address>(stub);
-  auto ent        = &idt[vector];
+  const auto addr = reinterpret_cast<virtual_address>(stub);
+  const auto ent  = &idt[vector];
   ent->offset_low = addr & 0xFFFF;
   ent->offset_hi  = addr >> 16;
   ent->cs         = code_segment;

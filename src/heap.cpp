@@ -42,8 +42,8 @@ namespace heap
 void initialize()
 {
   // can confidently store 256 of these
-  entity_lists      = reinterpret_cast<heap_entity_list *>(vmm::allocate());
-  entity_list_count = 0;
+  entity_lists            = static_cast<heap_entity_list *>(vmm::allocate());
+  entity_list_count       = 0;
   entity_lists_page_count = 1;
 }
 
@@ -55,18 +55,19 @@ void *allocate(const uint64_t bytes)
   }
 
   const uint64_t rounded_bytes = round::up(bytes, ALIGN);
-  const uint64_t bytes_page = round::up(rounded_bytes + ENTITY_SIZE, PAGE_SIZE) / PAGE_SIZE;
+  const uint64_t bytes_page =
+      round::up(rounded_bytes + ENTITY_SIZE, PAGE_SIZE) / PAGE_SIZE;
 
-  bool done  = false;
-  bool found = false;
-  heap_entity *entity;
+  bool done           = false;
+  bool found          = false;
+  heap_entity *entity = nullptr;
 
   while (!done)
   {
     for (uint64_t i = 0; i < entity_list_count && !found; i++)
     {
-      auto start   = entity_lists[i].first;
-      auto current = start;
+      const auto start = entity_lists[i].first;
+      auto current     = start;
 
       while (current != nullptr)
       {
@@ -87,8 +88,7 @@ void *allocate(const uint64_t bytes)
     // try to add new page if entries are full
     if (!found)
     {
-      bool result = add_new_entity_list(bytes_page);
-      if (!result)
+      if (!add_new_entity_list(bytes_page))
       {
         done = true;
       }
@@ -113,7 +113,7 @@ void *allocate(const uint64_t bytes)
   }
 
   // return space after (pointer arithmetic)
-  return reinterpret_cast<void *>(entity + 1);
+  return entity + 1;
 }
 
 void deallocate(void *block)
@@ -124,8 +124,8 @@ void deallocate(void *block)
     return;
   }
 
-  auto entity  = reinterpret_cast<heap_entity *>(block) - 1;
-  entity->used = 0;
+  const auto entity = static_cast<heap_entity *>(block) - 1;
+  entity->used      = false;
   merge_free_entities(entity);
 }
 } // namespace heap
@@ -133,13 +133,13 @@ void deallocate(void *block)
 
 namespace
 {
-bool add_new_entity_list(uint64_t page_count)
+bool add_new_entity_list(const uint64_t page_count)
 {
   entity_list_count++;
-  const uint64_t new_entity_list_page_count =
-      round::up(entity_list_count, PAGE_SIZE) / PAGE_SIZE;
 
-  if (new_entity_list_page_count > entity_lists_page_count)
+  if (const uint64_t new_entity_list_page_count =
+          round::up(entity_list_count, PAGE_SIZE) / PAGE_SIZE;
+      new_entity_list_page_count > entity_lists_page_count)
   {
     void *reloc = memory::vmm::allocate(new_entity_list_page_count);
     if (reloc == nullptr)
@@ -151,17 +151,17 @@ bool add_new_entity_list(uint64_t page_count)
 
     // resize heap entity list
     memcpy(reloc, entity_lists, entity_list_count * sizeof(heap_entity_list));
-    entity_lists = reinterpret_cast<heap_entity_list *>(reloc);
+    entity_lists = static_cast<heap_entity_list *>(reloc);
   }
 
-  auto first_entity =
-      reinterpret_cast<heap_entity *>(memory::vmm::allocate(page_count));
+  const auto first_entity =
+      static_cast<heap_entity *>(memory::vmm::allocate(page_count));
   if (first_entity == nullptr)
   {
     return false;
   }
 
-  first_entity->used = 0;
+  first_entity->used = false;
   first_entity->size = page_count * PAGE_SIZE - ENTITY_SIZE;
   first_entity->next = first_entity->prev = nullptr;
 
@@ -171,12 +171,12 @@ bool add_new_entity_list(uint64_t page_count)
   return true;
 }
 
-void split_entity(heap_entity *entity, uint64_t size)
+void split_entity(heap_entity *entity, const uint64_t size)
 {
-  auto b2_addr = reinterpret_cast<virtual_address>(entity + 1) + size;
+  const auto b2_addr = reinterpret_cast<virtual_address>(entity + 1) + size;
 
-  auto b1 = entity;
-  auto b2 = reinterpret_cast<heap_entity *>(b2_addr);
+  const auto b1 = entity;
+  const auto b2 = reinterpret_cast<heap_entity *>(b2_addr);
 
   b2->size = b1->size - size - ENTITY_SIZE;
   b2->used = false;
@@ -199,8 +199,8 @@ void merge_free_entities(heap_entity *start)
   // merge free blocks after
   while (p->next != nullptr && !p->next->used)
   {
-    auto next = p->next;
-    p->next   = next->next;
+    const auto next = p->next;
+    p->next         = next->next;
     p->size += next->size + ENTITY_SIZE;
 
     // we don't need to assign p = next since it merges the block after it
@@ -209,8 +209,8 @@ void merge_free_entities(heap_entity *start)
   // merge free blocks before
   while (p->prev != nullptr && !p->prev->used)
   {
-    auto prev  = p->prev;
-    prev->next = p->next;
+    const auto prev = p->prev;
+    prev->next      = p->next;
     prev->size += p->size + ENTITY_SIZE;
     p = prev;
   }

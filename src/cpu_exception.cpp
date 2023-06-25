@@ -6,9 +6,9 @@
 namespace
 {
 __attribute__((noreturn)) void halt();
-void abort_handler(low_level::isr::interrupt_info *int_info);
-void page_fault_handler(low_level::isr::interrupt_info *int_info);
-void fault_handler(low_level::isr::interrupt_info *);
+void abort_handler(const low_level::isr::interrupt_info *int_info);
+void page_fault_handler(const low_level::isr::interrupt_info *int_info);
+void fault_handler(const low_level::isr::interrupt_info *);
 
 constexpr const char *EXCEPTIONS[] = {
     "",
@@ -39,38 +39,38 @@ namespace cpu_exception
 {
 void initialize()
 {
-  low_level::isr::set_handler(0, fault_handler);
-  low_level::isr::set_handler(1, fault_handler);
-  low_level::isr::set_handler(2, fault_handler);
-  low_level::isr::set_handler(3, fault_handler);
-  low_level::isr::set_handler(4, fault_handler);
-  low_level::isr::set_handler(5, fault_handler);
-  low_level::isr::set_handler(6, fault_handler);
-  low_level::isr::set_handler(7, fault_handler);
-  low_level::isr::set_handler(8, abort_handler);
-  low_level::isr::set_handler(9, fault_handler);
-  low_level::isr::set_handler(10, fault_handler);
-  low_level::isr::set_handler(11, fault_handler);
-  low_level::isr::set_handler(12, fault_handler);
-  low_level::isr::set_handler(13, abort_handler);
-  low_level::isr::set_handler(14, page_fault_handler);
-  low_level::isr::set_handler(15, fault_handler);
-  low_level::isr::set_handler(16, fault_handler);
-  low_level::isr::set_handler(17, fault_handler);
-  low_level::isr::set_handler(18, abort_handler);
-  low_level::isr::set_handler(19, fault_handler);
-  low_level::isr::set_handler(20, fault_handler);
-  low_level::isr::set_handler(21, fault_handler);
-  low_level::isr::set_handler(22, fault_handler);
-  low_level::isr::set_handler(23, fault_handler);
-  low_level::isr::set_handler(24, fault_handler);
-  low_level::isr::set_handler(25, fault_handler);
-  low_level::isr::set_handler(26, fault_handler);
-  low_level::isr::set_handler(27, fault_handler);
-  low_level::isr::set_handler(28, fault_handler);
-  low_level::isr::set_handler(29, fault_handler);
-  low_level::isr::set_handler(30, fault_handler);
-  low_level::isr::set_handler(31, fault_handler);
+  set_handler(0, fault_handler);
+  set_handler(1, fault_handler);
+  set_handler(2, fault_handler);
+  set_handler(3, fault_handler);
+  set_handler(4, fault_handler);
+  set_handler(5, fault_handler);
+  set_handler(6, fault_handler);
+  set_handler(7, fault_handler);
+  set_handler(8, abort_handler);
+  set_handler(9, fault_handler);
+  set_handler(10, fault_handler);
+  set_handler(11, fault_handler);
+  set_handler(12, fault_handler);
+  set_handler(13, abort_handler);
+  set_handler(14, page_fault_handler);
+  set_handler(15, fault_handler);
+  set_handler(16, fault_handler);
+  set_handler(17, fault_handler);
+  set_handler(18, abort_handler);
+  set_handler(19, fault_handler);
+  set_handler(20, fault_handler);
+  set_handler(21, fault_handler);
+  set_handler(22, fault_handler);
+  set_handler(23, fault_handler);
+  set_handler(24, fault_handler);
+  set_handler(25, fault_handler);
+  set_handler(26, fault_handler);
+  set_handler(27, fault_handler);
+  set_handler(28, fault_handler);
+  set_handler(29, fault_handler);
+  set_handler(30, fault_handler);
+  set_handler(31, fault_handler);
 }
 } // namespace cpu_exception
 } // namespace kernel
@@ -86,7 +86,7 @@ __attribute__((noreturn)) void halt()
   }
 }
 
-void abort_handler(low_level::isr::interrupt_info *int_info)
+void abort_handler(const low_level::isr::interrupt_info *int_info)
 {
   graphics::framebuffer::printf("ABORT: %s\nError code 0x%02X\nRegister dump:",
                                 EXCEPTIONS[int_info->vector],
@@ -126,14 +126,14 @@ void abort_handler(low_level::isr::interrupt_info *int_info)
   halt();
 }
 
-void page_fault_handler(low_level::isr::interrupt_info *int_info)
+void page_fault_handler(const low_level::isr::interrupt_info *int_info)
 {
   graphics::framebuffer::printf("PAGE FAULT: tried to access 0x%016lX\n",
                                 int_info->registers.cr2);
   halt();
 }
 
-void fault_handler(low_level::isr::interrupt_info *)
+void fault_handler(const low_level::isr::interrupt_info *)
 {
 }
 } // namespace

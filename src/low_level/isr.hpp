@@ -39,7 +39,7 @@ struct interrupt_info
   uint8_t error_code;
 };
 
-using handler = void (*)(interrupt_info *);
+using handler = void (*)(const interrupt_info *);
 
 void initialize(idt::entry idt[256]);
 void set_handler(uint8_t vector, handler fn);

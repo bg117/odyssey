@@ -4,7 +4,7 @@ namespace low_level
 {
 namespace idt
 {
-void make_descriptor(descriptor &desc, entry *idt, uint16_t size)
+void make_descriptor(descriptor &desc, entry *idt, const uint16_t size)
 {
   desc.limit = sizeof(entry) * size - 1;
   desc.base  = idt;

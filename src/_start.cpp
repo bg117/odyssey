@@ -14,7 +14,7 @@ namespace
 void halt()
 {
   asm volatile("cli");
-  while (1)
+  while (true)
   {
     asm volatile("hlt");
   }

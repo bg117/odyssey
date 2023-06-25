@@ -2,12 +2,12 @@
 
 #include <cstddef>
 
-void *operator new(uint64_t bytes)
+void *operator new(const uint64_t bytes)
 {
   return memory::heap::allocate(bytes);
 }
 
-void *operator new[](uint64_t bytes)
+void *operator new[](const uint64_t bytes)
 {
   return memory::heap::allocate(bytes);
 }

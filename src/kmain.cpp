@@ -30,14 +30,20 @@ low_level::idt::descriptor idt_desc = {.limit = sizeof(idt) - 1, .base = idt};
 void kmain()
 {
   graphics::framebuffer::initialize();
-  low_level::gdt::load(gdt_desc, 0x28, 0x30);
+  load(gdt_desc, 0x28, 0x30);
 
   low_level::isr::initialize(idt);
-  low_level::idt::load(idt_desc);
+  load(idt_desc);
 
   kernel::cpu_exception::initialize();
 
   memory::pmm::initialize();
   memory::vmm::initialize();
   memory::heap::initialize();
+
+  graphics::framebuffer::print("Done initializing.\n");
+  graphics::framebuffer::print("---\n");
+  graphics::framebuffer::printf(
+      "ODYSSEY operating system, compiled at %s on %s\n", __DATE__,
+      __TIMESTAMP__);
 }

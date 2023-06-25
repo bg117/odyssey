@@ -28,10 +28,11 @@ void invalidate_page(virtual_address addr);
 
 virtual_address find_first_free_region(uint16_t count = 1);
 
-memory::paging_structure_entry *entry_from_indices(offset pdpt, offset pd,
-                                                   offset pt, offset pte);
-constexpr virtual_address vaddr_from_indices(offset pml4, offset pdpt,
-                                             offset pd, offset pt);
+memory::paging_structure_entry *entry_from_indices(offset pdpt_idx,
+                                                   offset pd_idx, offset pt_idx,
+                                                   offset pte_idx);
+constexpr virtual_address vaddr_from_indices(offset pml4_idx, offset pdpt_idx,
+                                             offset pd_idx, offset pt_idx);
 
 constexpr offset pml4_offset(virtual_address addr);
 constexpr offset pdpt_offset(virtual_address addr);
@@ -46,7 +47,7 @@ namespace vmm
 void initialize()
 {
   LOG("allocating PML4");
-  pml4 = reinterpret_cast<paging_structure_entry *>(pmm::allocate());
+  pml4 = static_cast<paging_structure_entry *>(pmm::allocate());
 
   LOG("mapping PML4[%lu] to itself", RECURSIVE_PSE_INDEX);
   pml4[RECURSIVE_PSE_INDEX].flags = 0x3;
@@ -67,21 +68,21 @@ void initialize()
   LOG("mapping framebuffer into higher half");
   for (counter i = 0; i < rounded_fb_size; i += PAGE_SIZE)
   {
-    auto fb_loc = INFO.framebuffer.location + i;
+    const auto fb_loc = INFO.framebuffer.location + i;
     map_page(fb_loc, INFO.higher_half_direct_offset + fb_loc);
   }
 
   LOG("mapping kernel stack into higher half");
   for (counter i = 0; i < INFO.stack.size; i += PAGE_SIZE)
   {
-    auto stack_loc = rounded_stack_loc - i;
+    const auto stack_loc = rounded_stack_loc - i;
     map_page(stack_loc, INFO.higher_half_direct_offset + stack_loc);
   }
 
   LOG("mapping PMM bitmap into higher half");
   for (counter i = 0; i < INFO.bitmap.size; i += PAGE_SIZE)
   {
-    auto bitmap_loc = INFO.bitmap.location + i;
+    const auto bitmap_loc = INFO.bitmap.location + i;
     map_page(bitmap_loc, INFO.higher_half_direct_offset + bitmap_loc);
   }
 
@@ -91,16 +92,16 @@ void initialize()
   reload_cr3();
 }
 
-void *allocate(uint64_t count)
+void *allocate(const uint64_t count)
 {
   if (count == 0)
   {
     LOG("error: cannot find 0 consecutive pages of virtual addresses");
-    return 0;
+    return nullptr;
   }
 
   // get a free region
-  virtual_address region = find_first_free_region(count);
+  const virtual_address region = find_first_free_region(count);
 
   // if no memory, return NULL
   if (region == 0)
@@ -116,7 +117,7 @@ void *allocate(uint64_t count)
     const auto region_off = region + i * PAGE_SIZE;
     map_page(reinterpret_cast<virtual_address>(block), region_off);
 
-    auto pte =
+    const auto pte =
         entry_from_indices(pml4_offset(region_off), pdpt_offset(region_off),
                            pd_offset(region_off), pt_offset(region_off));
 
@@ -129,15 +130,17 @@ void *allocate(uint64_t count)
 
 void deallocate(void *page)
 {
-  auto addr  = reinterpret_cast<virtual_address>(page);
-  auto pml4e = entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
-                                  RECURSIVE_PSE_INDEX, pml4_offset(addr)),
-       pdpte = entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
-                                  pml4_offset(addr), pdpt_offset(addr)),
-       pde   = entry_from_indices(RECURSIVE_PSE_INDEX, pml4_offset(addr),
-                                  pdpt_offset(addr), pd_offset(addr)),
-       pte   = entry_from_indices(pml4_offset(addr), pdpt_offset(addr),
-                                  pd_offset(addr), pt_offset(addr));
+  const auto addr = reinterpret_cast<virtual_address>(page);
+  const auto pml4e =
+                 entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
+                                    RECURSIVE_PSE_INDEX, pml4_offset(addr)),
+             pdpte =
+                 entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
+                                    pml4_offset(addr), pdpt_offset(addr)),
+             pde = entry_from_indices(RECURSIVE_PSE_INDEX, pml4_offset(addr),
+                                      pdpt_offset(addr), pd_offset(addr));
+  auto pte       = entry_from_indices(pml4_offset(addr), pdpt_offset(addr),
+                                      pd_offset(addr), pt_offset(addr));
   // if any structure in the hierarchy is not actually present then abort
   if (!(flag::is_set(pml4e->flags, 1) && flag::is_set(pdpte->flags, 1) &&
         flag::is_set(pde->flags, 1) && flag::is_set(pte->flags, 1)))
@@ -174,7 +177,7 @@ void deallocate(void *page)
 
 namespace
 {
-void map_page(physical_address phys, virtual_address virt)
+void map_page(const physical_address phys, const virtual_address virt)
 {
   if (initialized)
   {
@@ -188,17 +191,20 @@ void map_page(physical_address phys, virtual_address virt)
   // LOG("mapped 0x%016lX -> 0x%016lX", phys, virt);
 }
 
-void map_page_initialized(physical_address phys, virtual_address virt)
+void map_page_initialized(const physical_address phys,
+                          const virtual_address virt)
 {
   // obtain page structure entries
-  auto pml4e = entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
-                                  RECURSIVE_PSE_INDEX, pml4_offset(virt)),
-       pdpte = entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
-                                  pml4_offset(virt), pdpt_offset(virt)),
-       pde   = entry_from_indices(RECURSIVE_PSE_INDEX, pml4_offset(virt),
-                                  pdpt_offset(virt), pd_offset(virt)),
-       pte   = entry_from_indices(pml4_offset(virt), pdpt_offset(virt),
-                                  pd_offset(virt), pt_offset(virt));
+  const auto pml4e =
+                 entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
+                                    RECURSIVE_PSE_INDEX, pml4_offset(virt)),
+             pdpte =
+                 entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
+                                    pml4_offset(virt), pdpt_offset(virt)),
+             pde = entry_from_indices(RECURSIVE_PSE_INDEX, pml4_offset(virt),
+                                      pdpt_offset(virt), pd_offset(virt)),
+             pte = entry_from_indices(pml4_offset(virt), pdpt_offset(virt),
+                                      pd_offset(virt), pt_offset(virt));
 
   // allocate the missing structures (if any)
   allocate_paging_structure_entry(pml4e);
@@ -212,25 +218,26 @@ void map_page_initialized(physical_address phys, virtual_address virt)
   invalidate_page(virt);
 }
 
-void map_page_uninitialized(physical_address phys, virtual_address virt)
+void map_page_uninitialized(const physical_address phys,
+                            const virtual_address virt)
 {
   // get PML4 entry
-  auto pml4e = pml4 + pml4_offset(virt);
+  const auto pml4e = pml4 + pml4_offset(virt);
   // if PML4 entry is not present, point to blank PDPT
   allocate_paging_structure_entry(pml4e);
 
   // rinse and repeat
-  auto pdpte = reinterpret_cast<memory::paging_structure_entry *>(
-                   pml4e->base_addr << 12) +
-               pdpt_offset(virt);
+  const auto pdpte = reinterpret_cast<memory::paging_structure_entry *>(
+                         pml4e->base_addr << 12) +
+                     pdpt_offset(virt);
   allocate_paging_structure_entry(pdpte);
 
-  auto pde = reinterpret_cast<memory::paging_structure_entry *>(pdpte->base_addr
-                                                                << 12) +
-             pd_offset(virt);
+  const auto pde = reinterpret_cast<memory::paging_structure_entry *>(
+                       pdpte->base_addr << 12) +
+                   pd_offset(virt);
   allocate_paging_structure_entry(pde);
 
-  auto pte =
+  const auto pte =
       reinterpret_cast<memory::paging_structure_entry *>(pde->base_addr << 12) +
       pt_offset(virt);
 
@@ -265,11 +272,14 @@ void allocate_paging_structure_entry(memory::paging_structure_entry *pse)
   }
 }
 
-memory::paging_structure_entry *entry_from_indices(offset pdpt, offset pd,
-                                                   offset pt, offset pte)
+memory::paging_structure_entry *entry_from_indices(const offset pdpt_idx,
+                                                   const offset pd_idx,
+                                                   const offset pt_idx,
+                                                   const offset pte_idx)
 {
-  const auto table_addr = vaddr_from_indices(510, pdpt, pd, pt);
-  return reinterpret_cast<memory::paging_structure_entry *>(table_addr) + pte;
+  const auto table_addr = vaddr_from_indices(510, pdpt_idx, pd_idx, pt_idx);
+  return reinterpret_cast<memory::paging_structure_entry *>(table_addr) +
+         pte_idx;
 }
 
 void reload_cr3()
@@ -278,33 +288,35 @@ void reload_cr3()
       pml4)); // load CR3 with memory address of PML4 (load into register first)
 }
 
-virtual_address find_first_free_region(uint16_t count)
+virtual_address find_first_free_region(const uint16_t count)
 {
   counter consec_count                            = 0;
   virtual_address consec_base                     = 0;
-  memory::paging_structure_entry *consec_base_pse = 0;
+  memory::paging_structure_entry *consec_base_pse = nullptr;
 
   for (offset pml4_idx = 256; pml4_idx < 512; pml4_idx++)
   { // get PML4 entry associated
-    auto pml4e = entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
-                                    RECURSIVE_PSE_INDEX, pml4_idx);
+    const auto pml4e =
+        entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
+                           RECURSIVE_PSE_INDEX, pml4_idx);
     allocate_paging_structure_entry(pml4e);
 
     for (offset pdpt_idx = 0; pdpt_idx < 512; pdpt_idx++)
     {
-      auto pdpte = entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
-                                      pml4_idx, pdpt_idx);
+      const auto pdpte = entry_from_indices(
+          RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX, pml4_idx, pdpt_idx);
       allocate_paging_structure_entry(pdpte);
 
       for (offset pd_idx = 0; pd_idx < 512; pd_idx++)
       {
-        auto pde =
+        const auto pde =
             entry_from_indices(RECURSIVE_PSE_INDEX, pml4_idx, pdpt_idx, pd_idx);
         allocate_paging_structure_entry(pde);
 
         for (offset pt_idx = 0; pt_idx < 512; pt_idx++)
         {
-          auto pte = entry_from_indices(pml4_idx, pdpt_idx, pd_idx, pt_idx);
+          const auto pte =
+              entry_from_indices(pml4_idx, pdpt_idx, pd_idx, pt_idx);
           if (!flag::is_set(pte->flags, 1))
           {
             // if 0 consecutive virtual addresses and encounter a free entry,
@@ -344,28 +356,31 @@ void invalidate_page(virtual_address addr)
   asm volatile("invlpg [%0]" ::"r"(addr) : "memory");
 }
 
-constexpr virtual_address vaddr_from_indices(offset pml4, offset pdpt,
-                                             offset pd, offset pt)
+constexpr virtual_address vaddr_from_indices(const offset pml4,
+                                             const offset pdpt_idx,
+                                             const offset pd_idx,
+                                             const offset pt_idx)
 {
-  return 0xffff000000000000 | pml4 << 39 | pdpt << 30 | pd << 21 | pt << 12;
+  return 0xffff000000000000 | pml4 << 39 | pdpt_idx << 30 | pd_idx << 21 |
+         pt_idx << 12;
 }
 
-constexpr offset pml4_offset(virtual_address addr)
+constexpr offset pml4_offset(const virtual_address addr)
 {
   return addr >> 39 & 0x1ff; // mask up to 511 only
 }
 
-constexpr offset pdpt_offset(virtual_address addr)
+constexpr offset pdpt_offset(const virtual_address addr)
 {
   return addr >> 30 & 0x1ff;
 }
 
-constexpr offset pd_offset(virtual_address addr)
+constexpr offset pd_offset(const virtual_address addr)
 {
   return addr >> 21 & 0x1ff;
 }
 
-constexpr offset pt_offset(virtual_address addr)
+constexpr offset pt_offset(const virtual_address addr)
 {
   return addr >> 12 & 0x1ff;
 }

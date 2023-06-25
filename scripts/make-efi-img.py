@@ -47,19 +47,20 @@ limine_deploy = os.path.join(
 vclose(part)
 
 # clone limine
-subprocess.run(
-    [
-        "git",
-        "clone",
-        "https://github.com/limine-bootloader/limine.git",
-        "--branch=v4.20230530.0-binary",
-        "--depth=1",
-        limine_dir,
-    ]
-)
+if not os.path.exists(limine_dir):
+    subprocess.run(
+        [
+            "git",
+            "clone",
+            "https://github.com/limine-bootloader/limine.git",
+            "--branch=v4.20230530.0-binary",
+            "--depth=1",
+            limine_dir,
+        ]
+    )
 
-# make limine tools
-subprocess.run(["make", "-s", "-C", limine_dir])
+    # make limine tools
+    subprocess.run(["make", "-s", "-C", limine_dir])
 
 # deploy limine to output disk image
 subprocess.run(
@@ -79,5 +80,3 @@ system = vol.mkdir("SYSTEM")
 copy_in([kernel], system)
 
 vclose(vol)
-
-shutil.rmtree(limine_dir)

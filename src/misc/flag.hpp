@@ -17,7 +17,7 @@ inline T set(T &n, uint64_t flag)
 }
 
 template<typename T>
-inline T unset(T &n, uint64_t flag)
+inline T unset(T &n, const uint64_t flag)
 {
   return n &= ~flag;
 }

@@ -8,25 +8,23 @@ constexpr char ALNUM_RANGE[] =
 
 namespace convert
 {
-char *int_to_string(long long num, char *buf, int radix)
+char *int_to_string(long long num, char *buf, const int radix)
 {
-  char *rc;
   char *ptr;
-  char *low;
   // Check for supported base.
   if (radix < 2 || radix > 36)
   {
     *buf = '\0';
     return buf;
   }
-  rc = ptr = buf;
+  char *rc = ptr = buf;
   // Set '-' for negative decimals.
   if (num < 0 && radix == 10)
   {
     *ptr++ = '-';
   }
   // Remember where the numbers start.
-  low = ptr;
+  char *low = ptr;
   // The actual conversion.
   do
   {
@@ -40,28 +38,26 @@ char *int_to_string(long long num, char *buf, int radix)
   // Invert the numbers.
   while (low < ptr)
   {
-    char tmp = *low;
+    const char tmp = *low;
     *low++   = *ptr;
     *ptr--   = tmp;
   }
   return rc;
 }
 
-char *uint_to_string(unsigned long long num, char *buf, int radix)
+char *uint_to_string(unsigned long long num, char *buf, const int radix)
 {
-  char *rc;
   char *ptr;
-  char *low;
   // Check for supported base.
   if (radix < 2 || radix > 36)
   {
     *buf = '\0';
     return buf;
   }
-  rc = ptr = buf;
+  char *rc = ptr = buf;
 
   // Remember where the numbers start.
-  low = ptr;
+  char *low = ptr;
   // The actual conversion.
   do
   {
@@ -75,7 +71,7 @@ char *uint_to_string(unsigned long long num, char *buf, int radix)
   // Invert the numbers.
   while (low < ptr)
   {
-    char tmp = *low;
+    const char tmp = *low;
     *low++   = *ptr;
     *ptr--   = tmp;
   }

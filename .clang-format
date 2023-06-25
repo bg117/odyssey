@@ -16,6 +16,7 @@ BreakStringLiterals: 'true'
 ColumnLimit: '80'
 IncludeBlocks: Regroup
 IndentCaseLabels: 'false'
+IndentExternBlock: 'false'
 IndentPPDirectives: AfterHash
 IndentWidth: '2'
 PointerAlignment: Right

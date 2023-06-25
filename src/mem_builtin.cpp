@@ -1,5 +1,5 @@
 /**
- * @file mem_builtin.c
+ * @file mem_builtin.cpp
  * @author bg117 (bg117@sooosilly.xyz)
  * @brief string.h memory functions implementation
  * @version 0.1
@@ -12,25 +12,27 @@
  * These definitions allow us to use special syntax that make use of
  * these functions.
  */
-#include <stddef.h>
-#include <stdint.h>
+#include <cstdint>
+#include <cstddef>
 
-extern "C" void *memset(void *dest, int32_t value, size_t count)
+extern "C"
 {
-  uint8_t *p = (uint8_t *)dest;
+void *memset(void *dest, const int32_t value, const size_t count)
+{
+  auto *p = static_cast<uint8_t *>(dest);
 
   for (size_t i = 0; i < count; i++)
   {
-    p[i] = (uint8_t)value;
+    p[i] = static_cast<uint8_t>(value);
   }
 
   return dest;
 }
 
-extern "C" void *memcpy(void *dest, const void *src, size_t count)
+void *memcpy(void *dest, const void *src, const size_t count)
 {
-  uint8_t *pdest      = (uint8_t *)dest;
-  const uint8_t *psrc = (const uint8_t *)src;
+  auto *pdest      = static_cast<uint8_t *>(dest);
+  const auto *psrc = static_cast<const uint8_t *>(src);
 
   for (size_t i = 0; i < count; i++)
   {
@@ -40,10 +42,10 @@ extern "C" void *memcpy(void *dest, const void *src, size_t count)
   return dest;
 }
 
-extern "C" void *memmove(void *dest, const void *src, size_t count)
+void *memmove(void *dest, const void *src, const size_t count)
 {
-  uint8_t *pdest      = (uint8_t *)dest;
-  const uint8_t *psrc = (const uint8_t *)src;
+  auto *pdest      = static_cast<uint8_t *>(dest);
+  const auto *psrc = static_cast<const uint8_t *>(src);
 
   if (src > dest)
   {
@@ -63,10 +65,10 @@ extern "C" void *memmove(void *dest, const void *src, size_t count)
   return dest;
 }
 
-extern "C" int memcmp(const void *ptr1, const void *ptr2, size_t count)
+int memcmp(const void *ptr1, const void *ptr2, const size_t count)
 {
-  const uint8_t *p1 = (const uint8_t *)ptr1;
-  const uint8_t *p2 = (const uint8_t *)ptr2;
+  const auto *p1 = static_cast<const uint8_t *>(ptr1);
+  const auto *p2 = static_cast<const uint8_t *>(ptr2);
 
   for (size_t i = 0; i < count; i++)
   {
@@ -79,7 +81,7 @@ extern "C" int memcmp(const void *ptr1, const void *ptr2, size_t count)
   return 0;
 }
 
-extern "C" size_t strlen(const char *s)
+size_t strlen(const char *s)
 {
   const char *p = s;
   while (*p)
@@ -88,4 +90,5 @@ extern "C" size_t strlen(const char *s)
   }
 
   return static_cast<size_t>(p - s);
+}
 }

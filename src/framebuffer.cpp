@@ -2,7 +2,6 @@
 
 #include "graphics/psf.hpp"
 #include "kernel/info.hpp"
-#include "misc/config.hpp"
 #include "misc/convert.hpp"
 #include "misc/round.hpp"
 #include "misc/types.hpp"
@@ -49,7 +48,7 @@ void printf_receive_arg_signed(printf_length len, std::va_list ap, char *buf,
                                int radix);
 void printf_receive_arg_unsigned(printf_length len, std::va_list ap, char *buf,
                                  int radix);
-void printf_pad(printf_pad_type pad, uint64_t len, char *buf);
+void printf_pad(printf_pad_type pad, uint64_t len, const char *buf);
 
 void scroll_line();
 } // namespace
@@ -78,7 +77,7 @@ void set_font(const char *font_name)
     {
       current += strlen(current) + 1; // null terminator
       // get size of "file"
-      auto size = *reinterpret_cast<uint64_t *>(current);
+      const auto size = *reinterpret_cast<uint64_t *>(current);
       current += size;
       continue;
     }
@@ -94,9 +93,9 @@ void set_font(const char *font_name)
 
 void set_pixel(const offset x, const offset y, const uint32_t bpp32)
 {
-  auto loc   = reinterpret_cast<uint32_t *>(fb->address);
-  offset off = y * fb->width + x;
-  loc[off]   = bpp32;
+  const auto loc   = static_cast<uint32_t *>(fb->address);
+  const offset off = y * fb->width + x;
+  loc[off]         = bpp32;
 }
 
 void print(const char c)
@@ -120,7 +119,7 @@ void print(const char c)
     column = round::up(column, 8); // round to nearest 8
     if (column >= MAX_COLUMNS)
     {
-      offset over = column - MAX_COLUMNS;
+      const offset over = column - MAX_COLUMNS;
       column      = over;
       line++;
     }
@@ -215,55 +214,55 @@ __attribute__((format(printf, 1, 2))) void printf(const char *fmt, ...)
         ++fmt;
         continue;
       case '%':
-        graphics::framebuffer::print('%');
+        print('%');
         break;
       case 's': {
-        char *str = va_arg(ap, char *);
+        const char *str = va_arg(ap, char *);
         printf_pad(pad, pad_len, str);
-        graphics::framebuffer::print(str);
+        print(str);
       }
       break;
       case 'i':
       case 'd':
         printf_receive_arg_signed(length, ap, num, 10);
         printf_pad(pad, pad_len, num);
-        graphics::framebuffer::print(num);
+        print(num);
         break;
       case 'u':
         printf_receive_arg_unsigned(length, ap, num, 10);
         printf_pad(pad, pad_len, num);
-        graphics::framebuffer::print(num);
+        print(num);
         break;
       case 'x':
         printf_receive_arg_unsigned(length, ap, num, 16);
         printf_pad(pad, pad_len, num);
-        graphics::framebuffer::print(num);
+        print(num);
         break;
       case 'X':
         printf_receive_arg_unsigned(length, ap, num, 16);
         printf_pad(pad, pad_len, num);
-        graphics::framebuffer::print(convert::string_to_upper(num));
+        print(convert::string_to_upper(num));
         break;
       case 'p':
-        graphics::framebuffer::printf("0x");
+        printf("0x");
         printf_receive_arg_unsigned(printf_length::ll, ap, num, 16);
         printf_pad(printf_pad_type::zero, 16, num);
-        graphics::framebuffer::print(convert::string_to_upper(num));
+        print(convert::string_to_upper(num));
         break;
       case 'o':
         printf_receive_arg_unsigned(length, ap, num, 16);
         printf_pad(pad, pad_len, num);
-        graphics::framebuffer::print(num);
+        print(num);
         break;
       default:
-        graphics::framebuffer::print('%');
-        graphics::framebuffer::print(*fmt);
+        print('%');
+        print(*fmt);
         break;
       }
     }
     else
     {
-      graphics::framebuffer::print(*fmt);
+      print(*fmt);
     }
 
     status  = printf_status::normal;
@@ -283,13 +282,13 @@ namespace
 {
 void print_bare(const char c)
 {
-  offset bytes_per_row = round::up(font->width, 8) / 8;
-  offset glyph_offset  = font->header_size + c * font->bytes_per_glyph;
-  auto glyph           = reinterpret_cast<uint8_t *>(font) + glyph_offset;
+  const offset bytes_per_row = round::up(font->width, 8) / 8;
+  const offset glyph_offset  = font->header_size + c * font->bytes_per_glyph;
+  const auto glyph           = reinterpret_cast<uint8_t *>(font) + glyph_offset;
 
   for (counter y = 0; y < font->height; y++)
   {
-    auto row = reinterpret_cast<uint16_t *>(glyph + y * bytes_per_row);
+    const auto row = reinterpret_cast<uint16_t *>(glyph + y * bytes_per_row);
 
     for (counter x = 0; x < font->width; x++)
     {
@@ -300,16 +299,16 @@ void print_bare(const char c)
   }
 }
 
-void printf_receive_arg_signed(printf_length len, std::va_list ap, char *buf,
-                               int radix)
+void printf_receive_arg_signed(const printf_length len, std::va_list ap, char *buf,
+                               const int radix)
 {
   switch (len)
   {
   case printf_length::hh:
-    convert::int_to_string((char)va_arg(ap, int), buf, radix);
+    convert::int_to_string(static_cast<char>(va_arg(ap, int)), buf, radix);
     break;
   case printf_length::h:
-    convert::int_to_string((short)va_arg(ap, int), buf, radix);
+    convert::int_to_string(static_cast<short>(va_arg(ap, int)), buf, radix);
     break;
   case printf_length::normal:
     convert::int_to_string(va_arg(ap, int), buf, radix);
@@ -323,17 +322,17 @@ void printf_receive_arg_signed(printf_length len, std::va_list ap, char *buf,
   }
 }
 
-void printf_receive_arg_unsigned(printf_length len, std::va_list ap, char *buf,
-                                 int radix)
+void printf_receive_arg_unsigned(const printf_length len, std::va_list ap, char *buf,
+                                 const int radix)
 {
   switch (len)
   {
   case printf_length::hh:
-    convert::uint_to_string((unsigned char)va_arg(ap, unsigned int), buf,
+    convert::uint_to_string(static_cast<unsigned char>(va_arg(ap, unsigned int)), buf,
                             radix);
     break;
   case printf_length::h:
-    convert::uint_to_string((unsigned short)va_arg(ap, unsigned int), buf,
+    convert::uint_to_string(static_cast<unsigned short>(va_arg(ap, unsigned int)), buf,
                             radix);
     break;
   case printf_length::normal:
@@ -348,7 +347,7 @@ void printf_receive_arg_unsigned(printf_length len, std::va_list ap, char *buf,
   }
 }
 
-void printf_pad(printf_pad_type pad, uint64_t len, char *buf)
+void printf_pad(const printf_pad_type pad, const uint64_t len, const char *buf)
 {
   if (len == 0)
   {
@@ -375,9 +374,9 @@ void scroll_line()
 {
   // get how many pixels for one row (width of font * MAX_COLUMNS * height of
   // font)
-  auto row_size    = fb->pitch * font->height;
-  auto fb_size     = fb->pitch * fb->height;
-  auto address_chr = reinterpret_cast<uint8_t *>(fb->address);
+  const auto row_size    = fb->pitch * font->height;
+  const auto fb_size     = fb->pitch * fb->height;
+  const auto address_chr = static_cast<uint8_t *>(fb->address);
   // memmove
   memmove(address_chr, address_chr + row_size, fb_size - row_size);
   // clear current line

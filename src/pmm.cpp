@@ -36,7 +36,7 @@ void initialize()
       continue;
     }
 
-    auto base = mmap[i]->base, len = mmap[i]->length;
+    const auto base = mmap[i]->base, len = mmap[i]->length;
 
     if (free_start == 0)
     {
@@ -44,9 +44,8 @@ void initialize()
     }
 
     LOG("found free region 0x%016lX-0x%016lX", base, len);
-    auto top = base + len;
 
-    if (top > top_address)
+    if (const auto top = base + len; top > top_address)
     {
       LOG("new top address for free memory: 0x%016lX", top);
       top_address = top;
@@ -99,10 +98,10 @@ void initialize()
     for (counter j = 0; j < mmap[i]->length / PAGE_SIZE; j++)
     {
       // get the address of the page
-      physical_address addr = mmap[i]->base + j * PAGE_SIZE;
+      const physical_address addr = mmap[i]->base + j * PAGE_SIZE;
 
       // get the index of the page
-      auto idx = (addr - free_start) / PAGE_SIZE;
+      const auto idx = (addr - free_start) / PAGE_SIZE;
 
       // set the page as free
       flag::unset(bitmap[idx / 64], 1 << (idx % 64));
@@ -110,15 +109,15 @@ void initialize()
     }
   }
 
-  uint64_t bitmap_pages = bitmap_size / PAGE_SIZE;
+  const uint64_t bitmap_pages = bitmap_size / PAGE_SIZE;
 
   LOG("setting pages that bitmap is occupying");
   // set bitmap pages as used
   for (uint64_t i = 0; i < bitmap_pages; i++)
   {
-    auto idx = (reinterpret_cast<uint64_t>(bitmap) -
-                INFO.higher_half_direct_offset + i * PAGE_SIZE - free_start) /
-               PAGE_SIZE;
+    const auto idx = (reinterpret_cast<uint64_t>(bitmap) -
+                      INFO.higher_half_direct_offset + i * PAGE_SIZE - free_start) /
+                     PAGE_SIZE;
 
     flag::set(bitmap[idx / 64], 1 << (idx % 64));
   }
@@ -139,7 +138,7 @@ void *allocate()
   if (free_amount == 0)
   {
     LOG("critical: no more free physical pages");
-    return NULL;
+    return nullptr;
   }
 
   // get first free block
@@ -156,7 +155,7 @@ void *allocate()
   flag::set(bitmap[i / 64], 1 << (i % 64));
   free_amount--;
 
-  auto block = reinterpret_cast<void *>(free_start + i * PAGE_SIZE);
+  const auto block = reinterpret_cast<void *>(free_start + i * PAGE_SIZE);
   // LOG("allocated block %p", block);
 
   // return the address of the block
@@ -165,7 +164,7 @@ void *allocate()
 
 void deallocate(void *page)
 {
-  if (page == NULL)
+  if (page == nullptr)
   {
     LOG("error: cannot free null pointer");
     return;
@@ -178,7 +177,7 @@ void deallocate(void *page)
   }
 
   // get the index of the block
-  auto i = (reinterpret_cast<physical_address>(page) - free_start) / PAGE_SIZE;
+  const auto i = (reinterpret_cast<physical_address>(page) - free_start) / PAGE_SIZE;
 
   // set the block as free
   flag::unset(bitmap[i / 64], 1 << (i % 64));

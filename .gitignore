@@ -10,3 +10,4 @@ build/
 .vs/
 .idea/
 cmake-*-*/
+.tmp*
