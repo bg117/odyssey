@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.13)
 project(Odyssey)
-enable_language(C ASM)
+enable_language(C CXX ASM)
 
 set(FONT_OBJ_FILES "")
 file(GLOB FONT_FILES ${CMAKE_CURRENT_SOURCE_DIR}/fonts/*.psf)
@@ -19,14 +19,14 @@ foreach(FILENAME ${FONT_FILES})
     list(APPEND FONT_OBJ_FILES ${OBJECT})
 endforeach(FILENAME)
 
+set(CMAKE_C_STANDARD 17)
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-missing-field-initializers -ffreestanding -fno-stack-protector -fno-stack-check -fno-strict-aliasing -fno-PIE -fno-PIC -m64 -march=x86-64 -mabi=sysv -mno-red-zone -mcmodel=kernel -MMD")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -Og -g -DDEBUG")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3")
-set(CMAKE_CXX_LINK_FLAGS "-nostdlib -static -melf_x86_64 -zmax-page-size=0x1000 -znoexecstack -T${CMAKE_CURRENT_SOURCE_DIR}/linker.lds")
 
-set(CMAKE_CXX_LINK_EXECUTABLE
-    "ld <CMAKE_CXX_LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
+set(C_CXX_COMMON_FLAGS -Wall -Wextra -Wno-missing-field-initializers -ffreestanding -fno-stack-protector -fno-stack-check -fno-strict-aliasing -fno-PIE -fno-PIC -m64 -march=x86-64 -mabi=sysv -mno-red-zone -mcmodel=kernel -masm=intel -MMD)
+set(C_CXX_COMMON_FLAGS_DEBUG -Og -g -DDEBUG)
+set(C_CXX_COMMON_FLAGS_RELEASE -O3)
+
+set(C_CXX_COMMON_LINK_FLAGS -nostdlib -static -Wl,-melf_x86_64 -zmax-page-size=0x1000 -znoexecstack -T${CMAKE_CURRENT_SOURCE_DIR}/linker.lds)
 
 add_executable(odyssey
     src/_start.cpp
@@ -63,6 +63,16 @@ add_executable(odyssey
     src/low_level/idt.hpp
 
     ${FONT_OBJ_FILES}
+)
+
+target_compile_options(odyssey PUBLIC
+    ${C_CXX_COMMON_FLAGS}
+    $<$<CONFIG:DEBUG>: ${C_CXX_COMMON_FLAGS_DEBUG}>
+    $<$<CONFIG:RELEASE>: ${C_CXX_COMMON_FLAGS_RELEASE}>
+)
+
+target_link_options(odyssey PUBLIC
+    ${C_CXX_COMMON_LINK_FLAGS}
 )
 
 add_custom_target(

@@ -12,7 +12,9 @@ void make_descriptor(descriptor &desc, entry *idt, uint16_t size)
 
 void load(descriptor &desc)
 {
-  asm volatile("lidt (%0); sti;" ::"r"(&desc) : "memory");
+  asm volatile("lidt [%0]\n"
+               "sti\n" ::"r"(&desc)
+               : "memory");
 }
 } // namespace idt
 } // namespace low_level

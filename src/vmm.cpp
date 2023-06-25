@@ -268,14 +268,13 @@ void allocate_paging_structure_entry(memory::paging_structure_entry *pse)
 memory::paging_structure_entry *entry_from_indices(offset pdpt, offset pd,
                                                    offset pt, offset pte)
 {
-  const auto table_addr = vaddr_from_indices(510, pdpt, pd, pt) +
-                          pte * sizeof(memory::paging_structure_entry);
-  return reinterpret_cast<memory::paging_structure_entry *>(table_addr);
+  const auto table_addr = vaddr_from_indices(510, pdpt, pd, pt);
+  return reinterpret_cast<memory::paging_structure_entry *>(table_addr) + pte;
 }
 
 void reload_cr3()
 {
-  asm volatile("mov %0, %%cr3" ::"r"(
+  asm volatile("mov cr3, %0" ::"r"(
       pml4)); // load CR3 with memory address of PML4 (load into register first)
 }
 
@@ -342,7 +341,7 @@ virtual_address find_first_free_region(uint16_t count)
 
 void invalidate_page(virtual_address addr)
 {
-  asm volatile("invlpg (%0)" ::"r"(addr) : "memory");
+  asm volatile("invlpg [%0]" ::"r"(addr) : "memory");
 }
 
 constexpr virtual_address vaddr_from_indices(offset pml4, offset pdpt,

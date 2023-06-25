@@ -37,15 +37,15 @@ volatile struct limine_hhdm_request hhdm_request   = {.id = LIMINE_HHDM_REQUEST,
 
 extern "C" void _start()
 {
-  asm volatile("movq %%rsp, %0" : "=m"(INFO.stack.location));
+  asm volatile("mov %0, rsp" : "=m"(INFO.stack.location));
   // enable SSE
-  asm volatile("mov %cr0, %rax;"
-               "and $0xFFFB, %ax;"
-               "or $0x2, %rax;"
-               "mov %rax, %cr0;"
-               "mov %cr4, %rax;"
-               "or $0x600, %ax;"
-               "mov %rax, %cr4;");
+  asm volatile("mov rax, cr0\n;"
+               "and ax, 0xFFFB\n"
+               "or rax, 0x2\n"
+               "mov cr0, rax\n"
+               "mov rax, cr4\n"
+               "or ax, 0x600\n"
+               "mov cr4, rax\n");
   INFO.stack.size = ss_request.stack_size;
 
   // we got nowhere to write on

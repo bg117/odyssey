@@ -1,351 +1,354 @@
+.intel_syntax noprefix
+
 .section .text
 
 .extern exception_handler
 .global interrupt_intermediary
 
-#define INTSTUB_NOERR(i) \
-  interrupt_stub_##i: \
-    push $0; \
-    push $##i; \
-    jmp interrupt_intermediary;
-
-#define INTSTUB_ERR(i) \
-  interrupt_stub_##i: \
-    push $##i; \
-    jmp interrupt_intermediary;
-
-interrupt_intermediary:
-  push %rax
-  push %rbx
-  push %rcx
-  push %rdx
-  push %rsp
-  push %rbp
-  push %rsi
-  push %rdi
-  push %r8
-  push %r9
-  push %r10
-  push %r11
-  push %r12
-  push %r13
-  push %r14
-  push %r15
-
-  mov %cr0, %rax
-  push %rax
-  mov %cr2, %rax
-  push %rax
-  mov %cr3, %rax
-  push %rax
-  mov %cr4, %rax
-  push %rax
-
-  xor %rax, %rax
-  mov %ds, %ax
-
-  mov $0x30, %ax
-  mov %ax, %ds
-  mov %ax, %es
-  mov %ax, %fs
-  mov %ax, %gs
-
-  mov %rsp,%rdi // pointer to interrupt info
-  
-  call exception_handler
-
-  pop %rax
-  pop %rax
-  pop %rax
-  pop %rax
-
-  pop %r15
-  pop %r14
-  pop %r13
-  pop %r12
-  pop %r11
-  pop %r10
-  pop %r9
-  pop %r8
-  pop %rdi
-  pop %rsi
-  pop %rbp
-  pop %rsp
-  pop %rdx
-  pop %rcx
-  pop %rbx
-  pop %rax
-  add $0x10, %rsp
-  iretq
-
-INTSTUB_NOERR(0)
-INTSTUB_NOERR(1)
-INTSTUB_NOERR(2)
-INTSTUB_NOERR(3)
-INTSTUB_NOERR(4)
-INTSTUB_NOERR(5)
-INTSTUB_NOERR(6)
-INTSTUB_NOERR(7)
-INTSTUB_ERR(8)
-INTSTUB_NOERR(9)
-INTSTUB_ERR(10)
-INTSTUB_ERR(11)
-INTSTUB_ERR(12)
-INTSTUB_ERR(13)
-INTSTUB_ERR(14)
-INTSTUB_NOERR(15)
-INTSTUB_NOERR(16)
-INTSTUB_ERR(17)
-INTSTUB_NOERR(18)
-INTSTUB_NOERR(19)
-INTSTUB_NOERR(20)
-INTSTUB_ERR(21)
-INTSTUB_NOERR(22)
-INTSTUB_NOERR(23)
-INTSTUB_NOERR(24)
-INTSTUB_NOERR(25)
-INTSTUB_NOERR(26)
-INTSTUB_NOERR(27)
-INTSTUB_NOERR(28)
-INTSTUB_ERR(29)
-INTSTUB_ERR(30)
-INTSTUB_NOERR(31)
-INTSTUB_NOERR(32)
-INTSTUB_NOERR(33)
-INTSTUB_NOERR(34)
-INTSTUB_NOERR(35)
-INTSTUB_NOERR(36)
-INTSTUB_NOERR(37)
-INTSTUB_NOERR(38)
-INTSTUB_NOERR(39)
-INTSTUB_NOERR(40)
-INTSTUB_NOERR(41)
-INTSTUB_NOERR(42)
-INTSTUB_NOERR(43)
-INTSTUB_NOERR(44)
-INTSTUB_NOERR(45)
-INTSTUB_NOERR(46)
-INTSTUB_NOERR(47)
-INTSTUB_NOERR(48)
-INTSTUB_NOERR(49)
-INTSTUB_NOERR(50)
-INTSTUB_NOERR(51)
-INTSTUB_NOERR(52)
-INTSTUB_NOERR(53)
-INTSTUB_NOERR(54)
-INTSTUB_NOERR(55)
-INTSTUB_NOERR(56)
-INTSTUB_NOERR(57)
-INTSTUB_NOERR(58)
-INTSTUB_NOERR(59)
-INTSTUB_NOERR(60)
-INTSTUB_NOERR(61)
-INTSTUB_NOERR(62)
-INTSTUB_NOERR(63)
-INTSTUB_NOERR(64)
-INTSTUB_NOERR(65)
-INTSTUB_NOERR(66)
-INTSTUB_NOERR(67)
-INTSTUB_NOERR(68)
-INTSTUB_NOERR(69)
-INTSTUB_NOERR(70)
-INTSTUB_NOERR(71)
-INTSTUB_NOERR(72)
-INTSTUB_NOERR(73)
-INTSTUB_NOERR(74)
-INTSTUB_NOERR(75)
-INTSTUB_NOERR(76)
-INTSTUB_NOERR(77)
-INTSTUB_NOERR(78)
-INTSTUB_NOERR(79)
-INTSTUB_NOERR(80)
-INTSTUB_NOERR(81)
-INTSTUB_NOERR(82)
-INTSTUB_NOERR(83)
-INTSTUB_NOERR(84)
-INTSTUB_NOERR(85)
-INTSTUB_NOERR(86)
-INTSTUB_NOERR(87)
-INTSTUB_NOERR(88)
-INTSTUB_NOERR(89)
-INTSTUB_NOERR(90)
-INTSTUB_NOERR(91)
-INTSTUB_NOERR(92)
-INTSTUB_NOERR(93)
-INTSTUB_NOERR(94)
-INTSTUB_NOERR(95)
-INTSTUB_NOERR(96)
-INTSTUB_NOERR(97)
-INTSTUB_NOERR(98)
-INTSTUB_NOERR(99)
-INTSTUB_NOERR(100)
-INTSTUB_NOERR(101)
-INTSTUB_NOERR(102)
-INTSTUB_NOERR(103)
-INTSTUB_NOERR(104)
-INTSTUB_NOERR(105)
-INTSTUB_NOERR(106)
-INTSTUB_NOERR(107)
-INTSTUB_NOERR(108)
-INTSTUB_NOERR(109)
-INTSTUB_NOERR(110)
-INTSTUB_NOERR(111)
-INTSTUB_NOERR(112)
-INTSTUB_NOERR(113)
-INTSTUB_NOERR(114)
-INTSTUB_NOERR(115)
-INTSTUB_NOERR(116)
-INTSTUB_NOERR(117)
-INTSTUB_NOERR(118)
-INTSTUB_NOERR(119)
-INTSTUB_NOERR(120)
-INTSTUB_NOERR(121)
-INTSTUB_NOERR(122)
-INTSTUB_NOERR(123)
-INTSTUB_NOERR(124)
-INTSTUB_NOERR(125)
-INTSTUB_NOERR(126)
-INTSTUB_NOERR(127)
-INTSTUB_NOERR(128)
-INTSTUB_NOERR(129)
-INTSTUB_NOERR(130)
-INTSTUB_NOERR(131)
-INTSTUB_NOERR(132)
-INTSTUB_NOERR(133)
-INTSTUB_NOERR(134)
-INTSTUB_NOERR(135)
-INTSTUB_NOERR(136)
-INTSTUB_NOERR(137)
-INTSTUB_NOERR(138)
-INTSTUB_NOERR(139)
-INTSTUB_NOERR(140)
-INTSTUB_NOERR(141)
-INTSTUB_NOERR(142)
-INTSTUB_NOERR(143)
-INTSTUB_NOERR(144)
-INTSTUB_NOERR(145)
-INTSTUB_NOERR(146)
-INTSTUB_NOERR(147)
-INTSTUB_NOERR(148)
-INTSTUB_NOERR(149)
-INTSTUB_NOERR(150)
-INTSTUB_NOERR(151)
-INTSTUB_NOERR(152)
-INTSTUB_NOERR(153)
-INTSTUB_NOERR(154)
-INTSTUB_NOERR(155)
-INTSTUB_NOERR(156)
-INTSTUB_NOERR(157)
-INTSTUB_NOERR(158)
-INTSTUB_NOERR(159)
-INTSTUB_NOERR(160)
-INTSTUB_NOERR(161)
-INTSTUB_NOERR(162)
-INTSTUB_NOERR(163)
-INTSTUB_NOERR(164)
-INTSTUB_NOERR(165)
-INTSTUB_NOERR(166)
-INTSTUB_NOERR(167)
-INTSTUB_NOERR(168)
-INTSTUB_NOERR(169)
-INTSTUB_NOERR(170)
-INTSTUB_NOERR(171)
-INTSTUB_NOERR(172)
-INTSTUB_NOERR(173)
-INTSTUB_NOERR(174)
-INTSTUB_NOERR(175)
-INTSTUB_NOERR(176)
-INTSTUB_NOERR(177)
-INTSTUB_NOERR(178)
-INTSTUB_NOERR(179)
-INTSTUB_NOERR(180)
-INTSTUB_NOERR(181)
-INTSTUB_NOERR(182)
-INTSTUB_NOERR(183)
-INTSTUB_NOERR(184)
-INTSTUB_NOERR(185)
-INTSTUB_NOERR(186)
-INTSTUB_NOERR(187)
-INTSTUB_NOERR(188)
-INTSTUB_NOERR(189)
-INTSTUB_NOERR(190)
-INTSTUB_NOERR(191)
-INTSTUB_NOERR(192)
-INTSTUB_NOERR(193)
-INTSTUB_NOERR(194)
-INTSTUB_NOERR(195)
-INTSTUB_NOERR(196)
-INTSTUB_NOERR(197)
-INTSTUB_NOERR(198)
-INTSTUB_NOERR(199)
-INTSTUB_NOERR(200)
-INTSTUB_NOERR(201)
-INTSTUB_NOERR(202)
-INTSTUB_NOERR(203)
-INTSTUB_NOERR(204)
-INTSTUB_NOERR(205)
-INTSTUB_NOERR(206)
-INTSTUB_NOERR(207)
-INTSTUB_NOERR(208)
-INTSTUB_NOERR(209)
-INTSTUB_NOERR(210)
-INTSTUB_NOERR(211)
-INTSTUB_NOERR(212)
-INTSTUB_NOERR(213)
-INTSTUB_NOERR(214)
-INTSTUB_NOERR(215)
-INTSTUB_NOERR(216)
-INTSTUB_NOERR(217)
-INTSTUB_NOERR(218)
-INTSTUB_NOERR(219)
-INTSTUB_NOERR(220)
-INTSTUB_NOERR(221)
-INTSTUB_NOERR(222)
-INTSTUB_NOERR(223)
-INTSTUB_NOERR(224)
-INTSTUB_NOERR(225)
-INTSTUB_NOERR(226)
-INTSTUB_NOERR(227)
-INTSTUB_NOERR(228)
-INTSTUB_NOERR(229)
-INTSTUB_NOERR(230)
-INTSTUB_NOERR(231)
-INTSTUB_NOERR(232)
-INTSTUB_NOERR(233)
-INTSTUB_NOERR(234)
-INTSTUB_NOERR(235)
-INTSTUB_NOERR(236)
-INTSTUB_NOERR(237)
-INTSTUB_NOERR(238)
-INTSTUB_NOERR(239)
-INTSTUB_NOERR(240)
-INTSTUB_NOERR(241)
-INTSTUB_NOERR(242)
-INTSTUB_NOERR(243)
-INTSTUB_NOERR(244)
-INTSTUB_NOERR(245)
-INTSTUB_NOERR(246)
-INTSTUB_NOERR(247)
-INTSTUB_NOERR(248)
-INTSTUB_NOERR(249)
-INTSTUB_NOERR(250)
-INTSTUB_NOERR(251)
-INTSTUB_NOERR(252)
-INTSTUB_NOERR(253)
-INTSTUB_NOERR(254)
-INTSTUB_NOERR(255)
-
 .altmacro
+
+.macro intstub_no_err i
+  interrupt_stub_\i:
+    push 0
+    push \i
+    jmp interrupt_intermediary
+.endm
+
+.macro intstub_err i
+  interrupt_stub_\i:
+    push \i
+    jmp interrupt_intermediary
+.endm
 
 .macro intstub_label i
   .quad interrupt_stub_\i
 .endm
 
+interrupt_intermediary:
+  push rax
+  push rbx
+  push rcx
+  push rdx
+  push rsp
+  push rbp
+  push rsi
+  push rdi
+  push r8
+  push r9
+  push r10
+  push r11
+  push r12
+  push r13
+  push r14
+  push r15
+
+  mov rax, cr0
+  push rax
+  mov rax, cr2
+  push rax
+  mov rax, cr3
+  push rax
+  mov rax, cr4
+  push rax
+
+  xor rax, rax
+  mov ax, ds
+
+  mov ax, 0x30
+  mov ds, ax
+  mov es, ax
+  mov fs, ax
+  mov gs, ax
+
+  mov rdi, rsp // pointer to interrupt info
+  
+  call exception_handler
+
+  add rsp, 32 // control registers
+
+  pop r15
+  pop r14
+  pop r13
+  pop r12
+  pop r11
+  pop r10
+  pop r9
+  pop r8
+  pop rdi
+  pop rsi
+  pop rbp
+  pop rsp
+  pop rdx
+  pop rcx
+  pop rbx
+  pop rax
+  
+  add rsp, 16
+  iretq
+
+intstub_no_err 0
+intstub_no_err 1
+intstub_no_err 2
+intstub_no_err 3
+intstub_no_err 4
+intstub_no_err 5
+intstub_no_err 6
+intstub_no_err 7
+intstub_err 8
+intstub_no_err 9
+intstub_err 10
+intstub_err 11
+intstub_err 12
+intstub_err 13
+intstub_err 14
+intstub_no_err 15
+intstub_no_err 16
+intstub_err 17
+intstub_no_err 18
+intstub_no_err 19
+intstub_no_err 20
+intstub_err 21
+intstub_no_err 22
+intstub_no_err 23
+intstub_no_err 24
+intstub_no_err 25
+intstub_no_err 26
+intstub_no_err 27
+intstub_no_err 28
+intstub_err 29
+intstub_err 30
+intstub_no_err 31
+intstub_no_err 32
+intstub_no_err 33
+intstub_no_err 34
+intstub_no_err 35
+intstub_no_err 36
+intstub_no_err 37
+intstub_no_err 38
+intstub_no_err 39
+intstub_no_err 40
+intstub_no_err 41
+intstub_no_err 42
+intstub_no_err 43
+intstub_no_err 44
+intstub_no_err 45
+intstub_no_err 46
+intstub_no_err 47
+intstub_no_err 48
+intstub_no_err 49
+intstub_no_err 50
+intstub_no_err 51
+intstub_no_err 52
+intstub_no_err 53
+intstub_no_err 54
+intstub_no_err 55
+intstub_no_err 56
+intstub_no_err 57
+intstub_no_err 58
+intstub_no_err 59
+intstub_no_err 60
+intstub_no_err 61
+intstub_no_err 62
+intstub_no_err 63
+intstub_no_err 64
+intstub_no_err 65
+intstub_no_err 66
+intstub_no_err 67
+intstub_no_err 68
+intstub_no_err 69
+intstub_no_err 70
+intstub_no_err 71
+intstub_no_err 72
+intstub_no_err 73
+intstub_no_err 74
+intstub_no_err 75
+intstub_no_err 76
+intstub_no_err 77
+intstub_no_err 78
+intstub_no_err 79
+intstub_no_err 80
+intstub_no_err 81
+intstub_no_err 82
+intstub_no_err 83
+intstub_no_err 84
+intstub_no_err 85
+intstub_no_err 86
+intstub_no_err 87
+intstub_no_err 88
+intstub_no_err 89
+intstub_no_err 90
+intstub_no_err 91
+intstub_no_err 92
+intstub_no_err 93
+intstub_no_err 94
+intstub_no_err 95
+intstub_no_err 96
+intstub_no_err 97
+intstub_no_err 98
+intstub_no_err 99
+intstub_no_err 100
+intstub_no_err 101
+intstub_no_err 102
+intstub_no_err 103
+intstub_no_err 104
+intstub_no_err 105
+intstub_no_err 106
+intstub_no_err 107
+intstub_no_err 108
+intstub_no_err 109
+intstub_no_err 110
+intstub_no_err 111
+intstub_no_err 112
+intstub_no_err 113
+intstub_no_err 114
+intstub_no_err 115
+intstub_no_err 116
+intstub_no_err 117
+intstub_no_err 118
+intstub_no_err 119
+intstub_no_err 120
+intstub_no_err 121
+intstub_no_err 122
+intstub_no_err 123
+intstub_no_err 124
+intstub_no_err 125
+intstub_no_err 126
+intstub_no_err 127
+intstub_no_err 128
+intstub_no_err 129
+intstub_no_err 130
+intstub_no_err 131
+intstub_no_err 132
+intstub_no_err 133
+intstub_no_err 134
+intstub_no_err 135
+intstub_no_err 136
+intstub_no_err 137
+intstub_no_err 138
+intstub_no_err 139
+intstub_no_err 140
+intstub_no_err 141
+intstub_no_err 142
+intstub_no_err 143
+intstub_no_err 144
+intstub_no_err 145
+intstub_no_err 146
+intstub_no_err 147
+intstub_no_err 148
+intstub_no_err 149
+intstub_no_err 150
+intstub_no_err 151
+intstub_no_err 152
+intstub_no_err 153
+intstub_no_err 154
+intstub_no_err 155
+intstub_no_err 156
+intstub_no_err 157
+intstub_no_err 158
+intstub_no_err 159
+intstub_no_err 160
+intstub_no_err 161
+intstub_no_err 162
+intstub_no_err 163
+intstub_no_err 164
+intstub_no_err 165
+intstub_no_err 166
+intstub_no_err 167
+intstub_no_err 168
+intstub_no_err 169
+intstub_no_err 170
+intstub_no_err 171
+intstub_no_err 172
+intstub_no_err 173
+intstub_no_err 174
+intstub_no_err 175
+intstub_no_err 176
+intstub_no_err 177
+intstub_no_err 178
+intstub_no_err 179
+intstub_no_err 180
+intstub_no_err 181
+intstub_no_err 182
+intstub_no_err 183
+intstub_no_err 184
+intstub_no_err 185
+intstub_no_err 186
+intstub_no_err 187
+intstub_no_err 188
+intstub_no_err 189
+intstub_no_err 190
+intstub_no_err 191
+intstub_no_err 192
+intstub_no_err 193
+intstub_no_err 194
+intstub_no_err 195
+intstub_no_err 196
+intstub_no_err 197
+intstub_no_err 198
+intstub_no_err 199
+intstub_no_err 200
+intstub_no_err 201
+intstub_no_err 202
+intstub_no_err 203
+intstub_no_err 204
+intstub_no_err 205
+intstub_no_err 206
+intstub_no_err 207
+intstub_no_err 208
+intstub_no_err 209
+intstub_no_err 210
+intstub_no_err 211
+intstub_no_err 212
+intstub_no_err 213
+intstub_no_err 214
+intstub_no_err 215
+intstub_no_err 216
+intstub_no_err 217
+intstub_no_err 218
+intstub_no_err 219
+intstub_no_err 220
+intstub_no_err 221
+intstub_no_err 222
+intstub_no_err 223
+intstub_no_err 224
+intstub_no_err 225
+intstub_no_err 226
+intstub_no_err 227
+intstub_no_err 228
+intstub_no_err 229
+intstub_no_err 230
+intstub_no_err 231
+intstub_no_err 232
+intstub_no_err 233
+intstub_no_err 234
+intstub_no_err 235
+intstub_no_err 236
+intstub_no_err 237
+intstub_no_err 238
+intstub_no_err 239
+intstub_no_err 240
+intstub_no_err 241
+intstub_no_err 242
+intstub_no_err 243
+intstub_no_err 244
+intstub_no_err 245
+intstub_no_err 246
+intstub_no_err 247
+intstub_no_err 248
+intstub_no_err 249
+intstub_no_err 250
+intstub_no_err 251
+intstub_no_err 252
+intstub_no_err 253
+intstub_no_err 254
+intstub_no_err 255
+
 .section .data
+
 .global interrupt_stub_table
 interrupt_stub_table:
-.set i, 0
-.rept 256
-  intstub_label %i
-  .set i, i+1
-.endr
+  .set i, 0
+  .rept 256
+    intstub_label %i
+    .set i, i+1
+  .endr

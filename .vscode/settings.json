@@ -1,11 +1,11 @@
 {
     "C_Cpp.default.configurationProvider": "ms-vscode.makefile-tools",
     "files.associations": {
-        "*.S": "gas",
+        "*.S": "asm-intel-x86-generic",
         "system_error": "c"
     },
     "[python]": {
-        "editor.defaultFormatter": "ms-python.python"
+        "editor.defaultFormatter": "ms-python.black-formatter"
     },
     "python.formatting.provider": "none"
 }
