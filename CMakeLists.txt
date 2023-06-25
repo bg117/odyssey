@@ -22,10 +22,7 @@ endforeach(FILENAME)
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_CXX_STANDARD 20)
 
-set(C_CXX_COMMON_FLAGS -Wall -Wextra -Wno-missing-field-initializers -ffreestanding -fno-stack-protector -fno-stack-check -fno-strict-aliasing -fno-PIE -fno-PIC -m64 -march=x86-64 -mabi=sysv -mno-red-zone -mcmodel=kernel -masm=intel -MMD)
-set(C_CXX_COMMON_FLAGS_DEBUG -Og -g -DDEBUG)
-set(C_CXX_COMMON_FLAGS_RELEASE -O3)
-
+set(C_CXX_COMMON_FLAGS -Wall -Wextra -Wno-missing-field-initializers -ffreestanding -fno-stack-protector -fno-stack-check -fno-strict-aliasing -fno-PIE -fno-PIC -m64 -march=x86-64 -mabi=sysv -mno-red-zone -mcmodel=kernel -masm=intel)
 set(C_CXX_COMMON_LINK_FLAGS -nostdlib -static -Wl,-melf_x86_64 -zmax-page-size=0x1000 -znoexecstack -T${CMAKE_CURRENT_SOURCE_DIR}/linker.lds)
 
 add_executable(odyssey

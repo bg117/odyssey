@@ -55,9 +55,7 @@ subprocess.run(
         "--branch=v4.20230530.0-binary",
         "--depth=1",
         limine_dir,
-    ],
-    stdout=subprocess.DEVNULL,
-    stderr=subprocess.STDOUT,
+    ]
 )
 
 # make limine tools
@@ -65,7 +63,7 @@ subprocess.run(["make", "-s", "-C", limine_dir])
 
 # deploy limine to output disk image
 subprocess.run(
-    [limine_deploy, output], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT
+    [limine_deploy, output]
 )
 
 vol = vopen(output, "r+b")

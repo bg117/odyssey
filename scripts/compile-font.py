@@ -3,6 +3,22 @@ import os, sys, subprocess, shutil, struct
 input_file = sys.argv[1]
 output_file = sys.argv[2]
 
+if not len(sys.argv) == 3:
+    print(
+        f"Usage: {sys.argv[0]} <input PSF> <output PSF>",
+        file=sys.stderr,
+    )
+    exit(1)
+
+if shutil.which("objcopy") is not None:
+    objcopy_exec = "objcopy"
+elif shutil.which("llvm-objcopy") is not None:
+    objcopy_exec = "llvm-objcopy"
+else:
+    print("Error: cannot locate objcopy/llvm-objcopy",
+        file=sys.stderr)
+    exit(2)
+
 dir_name = os.path.dirname(input_file)
 base_file_name = os.path.basename(input_file)
 base_file_name_no_ext = os.path.splitext(base_file_name)[0]
@@ -25,7 +41,7 @@ with open(input_file_mod, "r+b") as bin_file:
 
 subprocess.run(
     [
-        "objcopy",
+        objcopy_exec,
         "-I",
         "binary",
         "-O",
