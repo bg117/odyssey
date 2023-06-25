@@ -11,7 +11,7 @@ foreach(FILENAME ${FONT_FILES})
         OUTPUT ${OBJECT}
         COMMAND 
             python3
-            ${CMAKE_CURRENT_SOURCE_DIR}/compile_font.py
+            ${CMAKE_CURRENT_SOURCE_DIR}/scripts/compile-font.py
             ${FILENAME}
             ${OBJECT}
         DEPENDS ${FILENAME}
@@ -77,7 +77,7 @@ target_link_options(odyssey PUBLIC
 
 add_custom_target(
     hdd-img
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/hdd-img.sh
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/scripts/make-efi-img.py ${CMAKE_CURRENT_BINARY_DIR}/odyssey.img ${CMAKE_CURRENT_BINARY_DIR}/odyssey ${CMAKE_CURRENT_SOURCE_DIR}/limine.cfg
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     DEPENDS odyssey
 )
