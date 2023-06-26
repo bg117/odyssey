@@ -1,5 +1,6 @@
 #include "graphics/framebuffer.hpp"
 #include "kernel/cpu_exception.hpp"
+#include "kernel/info.hpp"
 #include "low_level/gdt.hpp"
 #include "low_level/idt.hpp"
 #include "low_level/isr.hpp"
@@ -7,6 +8,8 @@
 #include "memory/pmm.hpp"
 #include "memory/vmm.hpp"
 #include "misc/log.hpp"
+
+extern kernel::info INFO;
 
 namespace
 {
@@ -40,6 +43,8 @@ void kmain()
   memory::pmm::initialize();
   memory::vmm::initialize();
   memory::heap::initialize();
+
+  LOG("RSDT: 0x%08X", INFO.rsdp.info.rsdt_address);
 
   graphics::framebuffer::print("Done initializing.\n");
   graphics::framebuffer::print("---\n");

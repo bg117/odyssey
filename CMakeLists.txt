@@ -42,7 +42,6 @@ add_executable(odyssey
     src/vmm.cpp
     src/isr_indirection.S
     src/misc/flag.hpp
-    src/misc/config.hpp
     src/misc/convert.hpp
     src/misc/log.hpp
     src/misc/types.hpp
@@ -64,8 +63,6 @@ add_executable(odyssey
 
 target_compile_options(odyssey PUBLIC
     ${C_CXX_COMMON_FLAGS}
-    $<$<CONFIG:DEBUG>: ${C_CXX_COMMON_FLAGS_DEBUG}>
-    $<$<CONFIG:RELEASE>: ${C_CXX_COMMON_FLAGS_RELEASE}>
 )
 
 target_link_options(odyssey PUBLIC

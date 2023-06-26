@@ -33,6 +33,9 @@ volatile struct limine_hhdm_request hhdm_request   = {.id = LIMINE_HHDM_REQUEST,
     .id         = LIMINE_STACK_SIZE_REQUEST,
     .revision   = 0,
     .stack_size = 0x20000};
+
+volatile limine_rsdp_request rsdp_request = {.id       = LIMINE_RSDP_REQUEST,
+                                             .revision = 0};
 } // namespace
 
 extern "C" void _start()
@@ -84,6 +87,11 @@ extern "C" void _start()
   INFO.higher_half_kernel_offset = reinterpret_cast<offset>(&__kernel);
 
   INFO.stack.location -= INFO.higher_half_direct_offset;
+
+  INFO.rsdp.location = reinterpret_cast<physical_address>(rsdp_request.response->address);
+  INFO.rsdp.size = sizeof(low_level::rsdp);
+  memcpy(&INFO.rsdp.info, rsdp_request.response->address,
+         sizeof(low_level::rsdp));
 
   kmain();
 

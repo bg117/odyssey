@@ -2,6 +2,7 @@
 
 #include "../limine.h"
 #include "../misc/types.hpp"
+#include "../low_level/rsdp.hpp"
 
 constexpr uint64_t PAGE_SIZE = 0x1000; // 4 KiB
 
@@ -26,6 +27,7 @@ struct info
   physical_memory_region<> stack;
   physical_memory_region<limine_framebuffer> framebuffer;
   physical_memory_region<> bitmap;
+  physical_memory_region<low_level::rsdp> rsdp;
 
   offset higher_half_direct_offset;
   offset higher_half_kernel_offset;
