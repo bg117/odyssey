@@ -1,4 +1,8 @@
-import os, sys, subprocess, shutil, struct
+import os
+import sys
+import subprocess
+import shutil
+import struct
 
 input_file = sys.argv[1]
 output_file = sys.argv[2]

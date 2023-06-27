@@ -44,7 +44,7 @@ void kmain()
   memory::vmm::initialize();
   memory::heap::initialize();
 
-  LOG("RSDT: 0x%08X", INFO.rsdp.info.rsdt_address);
+  LOG("RSDT: 0x%016X", INFO.rsdp.info.rsdt_address);
 
   graphics::framebuffer::print("Done initializing.\n");
   graphics::framebuffer::print("---\n");
