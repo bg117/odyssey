@@ -1,7 +1,6 @@
 #include "low_level/gdt.hpp"
 
 #include "misc/log.hpp"
-#include "misc/types.hpp"
 
 namespace low_level
 {

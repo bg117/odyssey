@@ -28,7 +28,7 @@ namespace isr
 void initialize(idt::entry idt[256])
 {
   ::idt = idt;
-  for (counter i = 0; i < 256; i++)
+  for (int i = 0; i < 256; i++)
   {
     const uint8_t attributes = i == 3 || i == 4 ? 0x8F : 0x8E;
     set_idt_entry_fields(i, interrupt_stub_table[i], 0x28, attributes);
@@ -47,7 +47,7 @@ namespace
 void set_idt_entry_fields(const uint8_t vector, void (*stub)(), const uint16_t code_segment,
                           const uint8_t attributes)
 {
-  const auto addr = reinterpret_cast<virtual_address>(stub);
+  const auto addr = reinterpret_cast<uintptr_t>(stub);
   const auto ent  = &idt[vector];
   ent->offset_low = addr & 0xFFFF;
   ent->offset_hi  = addr >> 16;

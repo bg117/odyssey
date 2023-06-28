@@ -6,7 +6,6 @@
 #include "misc/flag.hpp"
 #include "misc/log.hpp"
 #include "misc/round.hpp"
-#include "misc/types.hpp"
 
 extern kernel::info INFO;
 
@@ -15,29 +14,28 @@ namespace
 memory::paging_structure_entry *pml4;
 bool initialized = false;
 
-constexpr offset RECURSIVE_PSE_INDEX = 510;
+constexpr int RECURSIVE_PSE_INDEX = 510;
 
-void map_page(physical_address phys, virtual_address virt);
-void map_page_initialized(physical_address phys, virtual_address virt);
-void map_page_uninitialized(physical_address phys, virtual_address virt);
+void map_page(uintptr_t phys, uintptr_t virt);
+void map_page_initialized(uintptr_t phys, uintptr_t virt);
+void map_page_uninitialized(uintptr_t phys, uintptr_t virt);
 
 void allocate_paging_structure_entry(memory::paging_structure_entry *pse);
 
 void reload_cr3();
-void invalidate_page(virtual_address addr);
+void invalidate_page(uintptr_t addr);
 
-virtual_address find_first_free_region(uint16_t count = 1);
+uintptr_t find_first_free_region(uint64_t count = 1);
 
-memory::paging_structure_entry *entry_from_indices(offset pdpt_idx,
-                                                   offset pd_idx, offset pt_idx,
-                                                   offset pte_idx);
-constexpr virtual_address vaddr_from_indices(offset pml4_idx, offset pdpt_idx,
-                                             offset pd_idx, offset pt_idx);
+memory::paging_structure_entry *entry_from_indices(int pdpt_idx, int pd_idx,
+                                                   int pt_idx, int pte_idx);
+constexpr uintptr_t vaddr_from_indices(int pml4_idx, int pdpt_idx, int pd_idx,
+                                       int pt_idx);
 
-constexpr offset pml4_offset(virtual_address addr);
-constexpr offset pdpt_offset(virtual_address addr);
-constexpr offset pd_offset(virtual_address addr);
-constexpr offset pt_offset(virtual_address addr);
+constexpr int pml4_offset(uintptr_t addr);
+constexpr int pdpt_offset(uintptr_t addr);
+constexpr int pd_offset(uintptr_t addr);
+constexpr int pt_offset(uintptr_t addr);
 } // namespace
 
 namespace memory
@@ -49,10 +47,9 @@ void initialize()
   LOG("allocating PML4");
   pml4 = static_cast<paging_structure_entry *>(pmm::allocate());
 
-  LOG("mapping PML4[%lu] to itself", RECURSIVE_PSE_INDEX);
-  pml4[RECURSIVE_PSE_INDEX].flags = 0x3;
-  pml4[RECURSIVE_PSE_INDEX].base_addr =
-      reinterpret_cast<physical_address>(pml4) >> 12;
+  LOG("mapping PML4[%d] to itself", RECURSIVE_PSE_INDEX);
+  pml4[RECURSIVE_PSE_INDEX].flags     = 0x3;
+  pml4[RECURSIVE_PSE_INDEX].base_addr = reinterpret_cast<uintptr_t>(pml4) >> 12;
 
   // get some info about stuff
   const uint64_t rounded_kernel_size = round::up(INFO.kernel.size, PAGE_SIZE);
@@ -60,27 +57,27 @@ void initialize()
   const uint64_t rounded_stack_loc = round::up(INFO.stack.location, PAGE_SIZE);
 
   LOG("mapping kernel into higher half");
-  for (counter i = 0; i < rounded_kernel_size; i += PAGE_SIZE)
+  for (uint64_t i = 0; i < rounded_kernel_size; i += PAGE_SIZE)
   {
     map_page(INFO.kernel.location + i, INFO.higher_half_kernel_offset + i);
   }
 
   LOG("mapping framebuffer into higher half");
-  for (counter i = 0; i < rounded_fb_size; i += PAGE_SIZE)
+  for (uint64_t i = 0; i < rounded_fb_size; i += PAGE_SIZE)
   {
     const auto fb_loc = INFO.framebuffer.location + i;
     map_page(fb_loc, INFO.higher_half_direct_offset + fb_loc);
   }
 
   LOG("mapping kernel stack into higher half");
-  for (counter i = 0; i < INFO.stack.size; i += PAGE_SIZE)
+  for (uint64_t i = 0; i < INFO.stack.size; i += PAGE_SIZE)
   {
     const auto stack_loc = rounded_stack_loc - i;
     map_page(stack_loc, INFO.higher_half_direct_offset + stack_loc);
   }
 
   LOG("mapping PMM bitmap into higher half");
-  for (counter i = 0; i < INFO.bitmap.size; i += PAGE_SIZE)
+  for (uint64_t i = 0; i < INFO.bitmap.size; i += PAGE_SIZE)
   {
     const auto bitmap_loc = INFO.bitmap.location + i;
     map_page(bitmap_loc, INFO.higher_half_direct_offset + bitmap_loc);
@@ -101,7 +98,7 @@ void *allocate(const uint64_t count)
   }
 
   // get a free region
-  const virtual_address region = find_first_free_region(count);
+  const uintptr_t region = find_first_free_region(count);
 
   // if no memory, return NULL
   if (region == 0)
@@ -111,11 +108,11 @@ void *allocate(const uint64_t count)
   }
 
   // allocate phys mem for PTE
-  for (counter i = 0; i < count; i++)
+  for (uint64_t i = 0; i < count; i++)
   {
-    void *block           = pmm::allocate();
+    const auto block      = pmm::allocate();
     const auto region_off = region + i * PAGE_SIZE;
-    map_page(reinterpret_cast<virtual_address>(block), region_off);
+    map_page(reinterpret_cast<uintptr_t>(block), region_off);
 
     const auto pte =
         entry_from_indices(pml4_offset(region_off), pdpt_offset(region_off),
@@ -130,7 +127,7 @@ void *allocate(const uint64_t count)
 
 void deallocate(void *page)
 {
-  const auto addr = reinterpret_cast<virtual_address>(page);
+  const auto addr = reinterpret_cast<uintptr_t>(page);
   const auto pml4e =
                  entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
                                     RECURSIVE_PSE_INDEX, pml4_offset(addr)),
@@ -149,7 +146,7 @@ void deallocate(void *page)
     return; // false alarm ._.
   }
 
-  counter i = 0;
+  uint64_t i = 0;
   while (true)
   {
     const auto addr_off = addr + i * PAGE_SIZE;
@@ -177,7 +174,7 @@ void deallocate(void *page)
 
 namespace
 {
-void map_page(const physical_address phys, const virtual_address virt)
+void map_page(const uintptr_t phys, const uintptr_t virt)
 {
   if (initialized)
   {
@@ -191,8 +188,7 @@ void map_page(const physical_address phys, const virtual_address virt)
   // LOG("mapped 0x%016lX -> 0x%016lX", phys, virt);
 }
 
-void map_page_initialized(const physical_address phys,
-                          const virtual_address virt)
+void map_page_initialized(const uintptr_t phys, const uintptr_t virt)
 {
   // obtain page structure entries
   const auto pml4e =
@@ -218,8 +214,7 @@ void map_page_initialized(const physical_address phys,
   invalidate_page(virt);
 }
 
-void map_page_uninitialized(const physical_address phys,
-                            const virtual_address virt)
+void map_page_uninitialized(const uintptr_t phys, const uintptr_t virt)
 {
   // get PML4 entry
   const auto pml4e = pml4 + pml4_offset(virt);
@@ -262,20 +257,20 @@ void allocate_paging_structure_entry(memory::paging_structure_entry *pse)
     if (pse->base_addr == 0)
     {
       pse->base_addr =
-          reinterpret_cast<physical_address>(memory::pmm::allocate()) >> 12;
+          reinterpret_cast<uintptr_t>(memory::pmm::allocate()) >> 12;
     }
 
     if (initialized)
     {
-      invalidate_page(reinterpret_cast<virtual_address>(pse));
+      invalidate_page(reinterpret_cast<uintptr_t>(pse));
     }
   }
 }
 
-memory::paging_structure_entry *entry_from_indices(const offset pdpt_idx,
-                                                   const offset pd_idx,
-                                                   const offset pt_idx,
-                                                   const offset pte_idx)
+memory::paging_structure_entry *entry_from_indices(const int pdpt_idx,
+                                                   const int pd_idx,
+                                                   const int pt_idx,
+                                                   const int pte_idx)
 {
   const auto table_addr = vaddr_from_indices(510, pdpt_idx, pd_idx, pt_idx);
   return reinterpret_cast<memory::paging_structure_entry *>(table_addr) +
@@ -288,32 +283,32 @@ void reload_cr3()
       pml4)); // load CR3 with memory address of PML4 (load into register first)
 }
 
-virtual_address find_first_free_region(const uint16_t count)
+uintptr_t find_first_free_region(const uint64_t count)
 {
-  counter consec_count                            = 0;
-  virtual_address consec_base                     = 0;
+  uint64_t consec_count                           = 0;
+  uintptr_t consec_base                           = 0;
   memory::paging_structure_entry *consec_base_pse = nullptr;
 
-  for (offset pml4_idx = 256; pml4_idx < 512; pml4_idx++)
+  for (int pml4_idx = 256; pml4_idx < 512; pml4_idx++)
   { // get PML4 entry associated
     const auto pml4e =
         entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
                            RECURSIVE_PSE_INDEX, pml4_idx);
     allocate_paging_structure_entry(pml4e);
 
-    for (offset pdpt_idx = 0; pdpt_idx < 512; pdpt_idx++)
+    for (int pdpt_idx = 0; pdpt_idx < 512; pdpt_idx++)
     {
       const auto pdpte = entry_from_indices(
           RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX, pml4_idx, pdpt_idx);
       allocate_paging_structure_entry(pdpte);
 
-      for (offset pd_idx = 0; pd_idx < 512; pd_idx++)
+      for (int pd_idx = 0; pd_idx < 512; pd_idx++)
       {
         const auto pde =
             entry_from_indices(RECURSIVE_PSE_INDEX, pml4_idx, pdpt_idx, pd_idx);
         allocate_paging_structure_entry(pde);
 
-        for (offset pt_idx = 0; pt_idx < 512; pt_idx++)
+        for (int pt_idx = 0; pt_idx < 512; pt_idx++)
         {
           const auto pte =
               entry_from_indices(pml4_idx, pdpt_idx, pd_idx, pt_idx);
@@ -341,7 +336,7 @@ virtual_address find_first_free_region(const uint16_t count)
           }
           else
           {
-            consec_count = 0; // resent counter
+            consec_count = 0; // resent uint64_t
           }
         }
       }
@@ -351,36 +346,34 @@ virtual_address find_first_free_region(const uint16_t count)
   return 0; // no free :(
 }
 
-void invalidate_page(virtual_address addr)
+void invalidate_page(uintptr_t addr)
 {
   asm volatile("invlpg [%0]" ::"r"(addr) : "memory");
 }
 
-constexpr virtual_address vaddr_from_indices(const offset pml4,
-                                             const offset pdpt_idx,
-                                             const offset pd_idx,
-                                             const offset pt_idx)
+constexpr uintptr_t vaddr_from_indices(const int pml4_idx, const int pdpt_idx,
+                                       const int pd_idx, const int pt_idx)
 {
-  return 0xffff000000000000 | pml4 << 39 | pdpt_idx << 30 | pd_idx << 21 |
-         pt_idx << 12;
+  const int64_t p1 = pml4_idx, p2 = pdpt_idx, p3 = pd_idx, p4 = pt_idx;
+  return 0xffff000000000000 | p1 << 39 | p2 << 30 | p3 << 21 | p4 << 12;
 }
 
-constexpr offset pml4_offset(const virtual_address addr)
+constexpr int pml4_offset(const uintptr_t addr)
 {
   return addr >> 39 & 0x1ff; // mask up to 511 only
 }
 
-constexpr offset pdpt_offset(const virtual_address addr)
+constexpr int pdpt_offset(const uintptr_t addr)
 {
   return addr >> 30 & 0x1ff;
 }
 
-constexpr offset pd_offset(const virtual_address addr)
+constexpr int pd_offset(const uintptr_t addr)
 {
   return addr >> 21 & 0x1ff;
 }
 
-constexpr offset pt_offset(const virtual_address addr)
+constexpr int pt_offset(const uintptr_t addr)
 {
   return addr >> 12 & 0x1ff;
 }

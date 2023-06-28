@@ -16,7 +16,7 @@ namespace
 uint64_t *bitmap, bitmap_size;
 
 uint64_t free_amount, free_limit;
-physical_address free_start;
+uintptr_t free_start;
 } // namespace
 
 namespace memory
@@ -25,7 +25,7 @@ namespace pmm
 {
 void initialize()
 {
-  physical_address top_address{};
+  uintptr_t top_address{};
   limine_memmap_entry **mmap = INFO.memory_map.map;
 
   for (uint64_t i = 0; i < INFO.memory_map.count; i++)
@@ -86,7 +86,7 @@ void initialize()
 
   LOG("unsetting free regions");
   // iterate over the memory map again to set the usable pages as free
-  for (counter i = 0; i < INFO.memory_map.count; i++)
+  for (uint64_t i = 0; i < INFO.memory_map.count; i++)
   {
     // skip non-usable memory
     if (mmap[i]->type != LIMINE_MEMMAP_USABLE)
@@ -95,10 +95,10 @@ void initialize()
     }
 
     // iterate through the pages
-    for (counter j = 0; j < mmap[i]->length / PAGE_SIZE; j++)
+    for (uint64_t j = 0; j < mmap[i]->length / PAGE_SIZE; j++)
     {
       // get the address of the page
-      const physical_address addr = mmap[i]->base + j * PAGE_SIZE;
+      const uintptr_t addr = mmap[i]->base + j * PAGE_SIZE;
 
       // get the index of the page
       const auto idx = (addr - free_start) / PAGE_SIZE;
@@ -127,7 +127,7 @@ void initialize()
 
   LOG("updating kernel info structure");
 
-  INFO.bitmap.location = reinterpret_cast<physical_address>(bitmap) -
+  INFO.bitmap.location = reinterpret_cast<uintptr_t>(bitmap) -
                          INFO.higher_half_direct_offset;
   INFO.bitmap.size = bitmap_size;
 }
@@ -142,7 +142,7 @@ void *allocate()
   }
 
   // get first free block
-  counter i = 0;
+  uint64_t i = 0;
   for (; i < free_limit; i++)
   {
     if (!flag::is_set(bitmap[i / 64], 1 << (i % 64)))
@@ -177,7 +177,7 @@ void deallocate(void *page)
   }
 
   // get the index of the block
-  const auto i = (reinterpret_cast<physical_address>(page) - free_start) / PAGE_SIZE;
+  const auto i = (reinterpret_cast<uintptr_t>(page) - free_start) / PAGE_SIZE;
 
   // set the block as free
   flag::unset(bitmap[i / 64], 1 << (i % 64));

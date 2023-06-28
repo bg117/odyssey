@@ -1,5 +1,4 @@
 #include "kernel/info.hpp"
-#include "misc/types.hpp"
 
 #include <cstring>
 
@@ -68,7 +67,7 @@ extern "C" void _start()
   INFO.memory_map.map   = mmap;
   INFO.memory_map.count = mmap_request.response->entry_count;
 
-  for (counter i = 0; i < INFO.memory_map.count; i++)
+  for (uint64_t i = 0; i < INFO.memory_map.count; i++)
   {
     switch (mmap[i]->type)
     {
@@ -84,11 +83,11 @@ extern "C" void _start()
   }
 
   INFO.higher_half_direct_offset = hhdm_request.response->offset;
-  INFO.higher_half_kernel_offset = reinterpret_cast<offset>(&__kernel);
+  INFO.higher_half_kernel_offset = reinterpret_cast<uint64_t>(&__kernel);
 
   INFO.stack.location -= INFO.higher_half_direct_offset;
 
-  INFO.rsdp.location = reinterpret_cast<physical_address>(rsdp_request.response->address);
+  INFO.rsdp.location = reinterpret_cast<uintptr_t>(rsdp_request.response->address);
   INFO.rsdp.size = sizeof(low_level::rsdp);
   memcpy(&INFO.rsdp.info, rsdp_request.response->address,
          sizeof(low_level::rsdp));

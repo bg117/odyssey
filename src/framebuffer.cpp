@@ -4,7 +4,6 @@
 #include "kernel/info.hpp"
 #include "misc/convert.hpp"
 #include "misc/round.hpp"
-#include "misc/types.hpp"
 
 #include <cstdarg>
 #include <cstring>
@@ -37,10 +36,10 @@ enum class printf_pad_type
 namespace
 {
 graphics::psf *font;
-offset line, column;
+uint64_t line, column;
 limine_framebuffer *fb;
 /* const */
-offset MAX_LINES, MAX_COLUMNS;
+uint64_t MAX_LINES, MAX_COLUMNS;
 
 // draw bare character
 void print_bare(char c);
@@ -83,7 +82,7 @@ void set_font(const char *font_name)
     }
 
     // go to start of header
-    font = reinterpret_cast<psf *>(current + strlen(font_name) + 1 + 8);
+    font  = reinterpret_cast<psf *>(current + strlen(font_name) + 1 + 8);
     found = true;
   }
 
@@ -91,11 +90,11 @@ void set_font(const char *font_name)
   MAX_LINES   = fb->height / font->height;
 }
 
-void set_pixel(const offset x, const offset y, const uint32_t bpp32)
+void set_pixel(const uint64_t x, const uint64_t y, const uint32_t bpp32)
 {
-  const auto loc   = static_cast<uint32_t *>(fb->address);
-  const offset off = y * fb->width + x;
-  loc[off]         = bpp32;
+  const auto loc     = static_cast<uint32_t *>(fb->address);
+  const uint64_t off = y * fb->width + x;
+  loc[off]           = bpp32;
 }
 
 void print(const char c)
@@ -119,8 +118,8 @@ void print(const char c)
     column = round::up(column, 8); // round to nearest 8
     if (column >= MAX_COLUMNS)
     {
-      const offset over = column - MAX_COLUMNS;
-      column      = over;
+      const uint64_t over = column - MAX_COLUMNS;
+      column              = over;
       line++;
     }
     break;
@@ -282,15 +281,15 @@ namespace
 {
 void print_bare(const char c)
 {
-  const offset bytes_per_row = round::up(font->width, 8) / 8;
-  const offset glyph_offset  = font->header_size + c * font->bytes_per_glyph;
-  const auto glyph           = reinterpret_cast<uint8_t *>(font) + glyph_offset;
+  const auto bytes_per_row  = round::up(font->width, 8) / 8;
+  const auto glyph_uint64_t = font->header_size + c * font->bytes_per_glyph;
+  const auto glyph = reinterpret_cast<uint8_t *>(font) + glyph_uint64_t;
 
-  for (counter y = 0; y < font->height; y++)
+  for (uint64_t y = 0; y < font->height; y++)
   {
     const auto row = reinterpret_cast<uint16_t *>(glyph + y * bytes_per_row);
 
-    for (counter x = 0; x < font->width; x++)
+    for (uint64_t x = 0; x < font->width; x++)
     {
       graphics::framebuffer::set_pixel(
           column * font->width + x, line * font->height + y,
@@ -299,8 +298,8 @@ void print_bare(const char c)
   }
 }
 
-void printf_receive_arg_signed(const printf_length len, std::va_list ap, char *buf,
-                               const int radix)
+void printf_receive_arg_signed(const printf_length len, std::va_list ap,
+                               char *buf, const int radix)
 {
   switch (len)
   {
@@ -322,18 +321,18 @@ void printf_receive_arg_signed(const printf_length len, std::va_list ap, char *b
   }
 }
 
-void printf_receive_arg_unsigned(const printf_length len, std::va_list ap, char *buf,
-                                 const int radix)
+void printf_receive_arg_unsigned(const printf_length len, std::va_list ap,
+                                 char *buf, const int radix)
 {
   switch (len)
   {
   case printf_length::hh:
-    convert::uint_to_string(static_cast<unsigned char>(va_arg(ap, unsigned int)), buf,
-                            radix);
+    convert::uint_to_string(
+        static_cast<unsigned char>(va_arg(ap, unsigned int)), buf, radix);
     break;
   case printf_length::h:
-    convert::uint_to_string(static_cast<unsigned short>(va_arg(ap, unsigned int)), buf,
-                            radix);
+    convert::uint_to_string(
+        static_cast<unsigned short>(va_arg(ap, unsigned int)), buf, radix);
     break;
   case printf_length::normal:
     convert::uint_to_string(va_arg(ap, unsigned int), buf, radix);

@@ -1,14 +1,15 @@
 #pragma once
 
 #include "../limine.h"
-#include "../misc/types.hpp"
 #include "../low_level/rsdp.hpp"
+
+#include <cstdint>
 
 constexpr uint64_t PAGE_SIZE = 0x1000; // 4 KiB
 
 template <typename InfoT = std::nullptr_t> struct physical_memory_region
 {
-  memory_address location;
+  uintptr_t location;
   uint64_t size;
   InfoT info;
 };
@@ -29,7 +30,7 @@ struct info
   physical_memory_region<> bitmap;
   physical_memory_region<low_level::rsdp> rsdp;
 
-  offset higher_half_direct_offset;
-  offset higher_half_kernel_offset;
+  uint64_t higher_half_direct_offset;
+  uint64_t higher_half_kernel_offset;
 };
 } // namespace kernel

@@ -173,7 +173,7 @@ bool add_new_entity_list(const uint64_t page_count)
 
 void split_entity(heap_entity *entity, const uint64_t size)
 {
-  const auto b2_addr = reinterpret_cast<virtual_address>(entity + 1) + size;
+  const auto b2_addr = reinterpret_cast<uintptr_t>(entity + 1) + size;
 
   const auto b1 = entity;
   const auto b2 = reinterpret_cast<heap_entity *>(b2_addr);
