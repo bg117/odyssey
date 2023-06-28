@@ -14,5 +14,10 @@ struct __attribute__((packed)) psf
   uint32_t bytes_per_glyph;
   uint32_t height;
   uint32_t width;
+  uint8_t *glyphs;
+
+  psf() = default;
+
+  psf(const char *font_name);
 };
 } // namespace graphics

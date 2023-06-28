@@ -25,7 +25,7 @@ void allocate_paging_structure_entry(memory::paging_structure_entry *pse);
 void reload_cr3();
 void invalidate_page(uintptr_t addr);
 
-uintptr_t find_first_free_region(uint64_t count = 1);
+uintptr_t find_first_free_region(uint64_t count, bool higher_half);
 
 memory::paging_structure_entry *entry_from_indices(int pdpt_idx, int pd_idx,
                                                    int pt_idx, int pte_idx);
@@ -53,20 +53,12 @@ void initialize()
 
   // get some info about stuff
   const uint64_t rounded_kernel_size = round::up(INFO.kernel.size, PAGE_SIZE);
-  const uint64_t rounded_fb_size = round::up(INFO.framebuffer.size, PAGE_SIZE);
   const uint64_t rounded_stack_loc = round::up(INFO.stack.location, PAGE_SIZE);
 
   LOG("mapping kernel into higher half");
   for (uint64_t i = 0; i < rounded_kernel_size; i += PAGE_SIZE)
   {
     map_page(INFO.kernel.location + i, INFO.higher_half_kernel_offset + i);
-  }
-
-  LOG("mapping framebuffer into higher half");
-  for (uint64_t i = 0; i < rounded_fb_size; i += PAGE_SIZE)
-  {
-    const auto fb_loc = INFO.framebuffer.location + i;
-    map_page(fb_loc, INFO.higher_half_direct_offset + fb_loc);
   }
 
   LOG("mapping kernel stack into higher half");
@@ -89,7 +81,7 @@ void initialize()
   reload_cr3();
 }
 
-void *allocate(const uint64_t count)
+void *allocate(const uint64_t count, const bool higher_half)
 {
   if (count == 0)
   {
@@ -98,7 +90,7 @@ void *allocate(const uint64_t count)
   }
 
   // get a free region
-  const uintptr_t region = find_first_free_region(count);
+  const uintptr_t region = find_first_free_region(count, higher_half);
 
   // if no memory, return NULL
   if (region == 0)
@@ -120,6 +112,43 @@ void *allocate(const uint64_t count)
 
     // fill lower 3 available bits with 0 if not end of chain, else 0x7
     pte->available_0 = i < count - 1 ? 0 : 0x7;
+  }
+
+  return reinterpret_cast<void *>(region);
+}
+
+void *allocate(const void *pre, const uint64_t count, const bool higher_half)
+{
+  if (count == 0)
+  {
+    LOG("error: cannot find 0 consecutive pages of virtual addresses");
+    return nullptr;
+  }
+
+  // get a free region
+  const auto region = find_first_free_region(count, higher_half);
+
+  // if no memory, return NULL
+  if (region == 0)
+  {
+    LOG("critical: no more free virtual addresses");
+    return nullptr;
+  }
+
+  // allocate phys mem for PTE
+  for (uint64_t i = 0; i < count; i++)
+  {
+    const auto block      = reinterpret_cast<uintptr_t>(pre) + i * PAGE_SIZE;
+    const auto region_off = region + i * PAGE_SIZE;
+    map_page(block, region_off);
+
+    const auto pte =
+        entry_from_indices(pml4_offset(region_off), pdpt_offset(region_off),
+                           pd_offset(region_off), pt_offset(region_off));
+
+    // fill lower 3 available bits with 0 if not end of chain, else 0x7
+    pte->available_0 = i < count - 1 ? 0 : 0x7;
+    pte->available_1 |= 0x2; // set PREALLOCATED bit
   }
 
   return reinterpret_cast<void *>(region);
@@ -152,12 +181,14 @@ void deallocate(void *page)
     const auto addr_off = addr + i * PAGE_SIZE;
     pte = entry_from_indices(pml4_offset(addr_off), pdpt_offset(addr_off),
                              pd_offset(addr_off), pt_offset(addr_off));
-    // free physical page
-    pmm::deallocate(reinterpret_cast<void *>(pte->base_addr << 12));
 
-    // unset flags
-    pte->flags     = 0;
-    pte->base_addr = 0;
+    // if not preallocated, free physical page
+    if (!flag::is_set(pte->available_1, 0x2))
+    {
+      // free physical page
+      pmm::deallocate(reinterpret_cast<void *>(pte->base_addr << 12));
+      pte->available_1 &= ~0x2; // unset PREALLOCATED bit
+    }
 
     // end of chain
     if (pte->available_0 == 0x7)
@@ -283,13 +314,14 @@ void reload_cr3()
       pml4)); // load CR3 with memory address of PML4 (load into register first)
 }
 
-uintptr_t find_first_free_region(const uint64_t count)
+uintptr_t find_first_free_region(const uint64_t count, const bool higher_half)
 {
   uint64_t consec_count                           = 0;
   uintptr_t consec_base                           = 0;
   memory::paging_structure_entry *consec_base_pse = nullptr;
+  int idx_base                                    = higher_half ? 256 : 0;
 
-  for (int pml4_idx = 256; pml4_idx < 512; pml4_idx++)
+  for (int pml4_idx = idx_base; pml4_idx < 512; pml4_idx++)
   { // get PML4 entry associated
     const auto pml4e =
         entry_from_indices(RECURSIVE_PSE_INDEX, RECURSIVE_PSE_INDEX,
@@ -310,6 +342,12 @@ uintptr_t find_first_free_region(const uint64_t count)
 
         for (int pt_idx = 0; pt_idx < 512; pt_idx++)
         {
+          // skip 0x0000-0x1000
+          if (pml4_idx == 0 && pdpt_idx == 0 && pd_idx == 0 && pt_idx == 0)
+          {
+            continue;
+          }
+
           const auto pte =
               entry_from_indices(pml4_idx, pdpt_idx, pd_idx, pt_idx);
           if (!flag::is_set(pte->flags, 1))
@@ -331,6 +369,13 @@ uintptr_t find_first_free_region(const uint64_t count)
               // set number of consecutive pages
               consec_base_pse->available_1 = count & 0x7FFF;      // low 15 bits
               consec_base_pse->available_0 = (count >> 15) & 0x7; // high 3 bits
+
+              if (!higher_half && pml4_idx < 256)
+              {
+                consec_base &= 0x0000FFFFFFFFFFFF; // mask out higher 16 bits
+                                                   // (sign extended)
+              }
+
               return consec_base;
             }
           }

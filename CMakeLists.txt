@@ -32,6 +32,7 @@ add_executable(odyssey
     src/framebuffer.cpp
     src/gdt.cpp
     src/heap.cpp
+    src/psf.cpp
     src/icxxabi.cpp
     src/idt.cpp
     src/isr.cpp
@@ -44,7 +45,6 @@ add_executable(odyssey
     src/misc/flag.hpp
     src/misc/convert.hpp
     src/misc/log.hpp
-    src/misc/types.hpp
     src/misc/round.hpp
     src/graphics/framebuffer.hpp
     src/graphics/psf.hpp
@@ -57,6 +57,9 @@ add_executable(odyssey
     src/low_level/isr.hpp
     src/low_level/gdt.hpp
     src/low_level/idt.hpp
+    src/acpi/rsdp.hpp
+    src/acpi/rsdt.hpp
+    src/acpi/sdt.hpp
 
     ${FONT_OBJ_FILES}
 )

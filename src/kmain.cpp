@@ -1,3 +1,5 @@
+#include "acpi/madt.hpp"
+#include "acpi/sdt.hpp"
 #include "graphics/framebuffer.hpp"
 #include "kernel/cpu_exception.hpp"
 #include "kernel/info.hpp"
@@ -8,6 +10,7 @@
 #include "memory/pmm.hpp"
 #include "memory/vmm.hpp"
 #include "misc/log.hpp"
+#include "misc/round.hpp"
 
 extern kernel::info INFO;
 
@@ -40,11 +43,20 @@ void kmain()
 
   kernel::cpu_exception::initialize();
 
+  auto madt = acpi::sdt::search<acpi::madt>("APIC");
+  LOG("MADT: %p", madt);
+
   memory::pmm::initialize();
   memory::vmm::initialize();
-  memory::heap::initialize();
 
-  LOG("RSDT: 0x%016X", INFO.rsdp.info.rsdt_address);
+  // map framebuffer
+  const auto fb_base  = reinterpret_cast<void *>(INFO.framebuffer.location);
+  const auto fb_pages = round::up(INFO.framebuffer.size, PAGE_SIZE) / PAGE_SIZE;
+  const auto new_fb_base = memory::vmm::allocate(fb_base, fb_pages, false);
+
+  INFO.framebuffer.info.address = new_fb_base;
+
+  memory::heap::initialize();
 
   graphics::framebuffer::print("Done initializing.\n");
   graphics::framebuffer::print("---\n");

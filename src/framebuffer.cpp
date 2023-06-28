@@ -35,7 +35,7 @@ enum class printf_pad_type
 
 namespace
 {
-graphics::psf *font;
+graphics::psf font;
 uint64_t line, column;
 limine_framebuffer *fb;
 /* const */
@@ -66,28 +66,9 @@ void initialize(const char *font_name)
 
 void set_font(const char *font_name)
 {
-  auto current = &__fb_fonts_start; // .fb_fonts section start
-  // search for font in fb_fonts
-  bool found = false;
-  while (!found && current < &__fb_fonts_end)
-  {
-    // if not matching
-    if (memcmp(font_name, current, strlen(font_name)) != 0)
-    {
-      current += strlen(current) + 1; // null terminator
-      // get size of "file"
-      const auto size = *reinterpret_cast<uint64_t *>(current);
-      current += size;
-      continue;
-    }
-
-    // go to start of header
-    font  = reinterpret_cast<psf *>(current + strlen(font_name) + 1 + 8);
-    found = true;
-  }
-
-  MAX_COLUMNS = fb->width / font->width;
-  MAX_LINES   = fb->height / font->height;
+  font        = psf(font_name);
+  MAX_COLUMNS = fb->width / font.width;
+  MAX_LINES   = fb->height / font.height;
 }
 
 void set_pixel(const uint64_t x, const uint64_t y, const uint32_t bpp32)
@@ -281,19 +262,19 @@ namespace
 {
 void print_bare(const char c)
 {
-  const auto bytes_per_row  = round::up(font->width, 8) / 8;
-  const auto glyph_uint64_t = font->header_size + c * font->bytes_per_glyph;
-  const auto glyph = reinterpret_cast<uint8_t *>(font) + glyph_uint64_t;
+  const auto bytes_per_row = round::up(font.width, 8) / 8;
+  const auto glyph_idx     = c * font.bytes_per_glyph;
+  const auto glyph         = font.glyphs + glyph_idx;
 
-  for (uint64_t y = 0; y < font->height; y++)
+  for (uint64_t y = 0; y < font.height; y++)
   {
     const auto row = reinterpret_cast<uint16_t *>(glyph + y * bytes_per_row);
 
-    for (uint64_t x = 0; x < font->width; x++)
+    for (uint64_t x = 0; x < font.width; x++)
     {
       graphics::framebuffer::set_pixel(
-          column * font->width + x, line * font->height + y,
-          *row & 1 << (font->width - x - 1) ? 0xb0acac : 0x0);
+          column * font.width + x, line * font.height + y,
+          *row & 1 << (font.width - x - 1) ? 0xb0acac : 0x0);
     }
   }
 }
@@ -373,7 +354,7 @@ void scroll_line()
 {
   // get how many pixels for one row (width of font * MAX_COLUMNS * height of
   // font)
-  const auto row_size    = fb->pitch * font->height;
+  const auto row_size    = fb->pitch * font.height;
   const auto fb_size     = fb->pitch * fb->height;
   const auto address_chr = static_cast<uint8_t *>(fb->address);
   // memmove

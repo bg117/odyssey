@@ -1,7 +1,8 @@
 #pragma once
 
 #include "../limine.h"
-#include "../low_level/rsdp.hpp"
+#include "../acpi/rsdp.hpp"
+#include "../acpi/rsdt.hpp"
 
 #include <cstdint>
 
@@ -28,7 +29,8 @@ struct info
   physical_memory_region<> stack;
   physical_memory_region<limine_framebuffer> framebuffer;
   physical_memory_region<> bitmap;
-  physical_memory_region<low_level::rsdp> rsdp;
+
+  acpi::rsdt rsdt;
 
   uint64_t higher_half_direct_offset;
   uint64_t higher_half_kernel_offset;

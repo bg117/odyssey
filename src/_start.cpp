@@ -1,5 +1,8 @@
 #include "kernel/info.hpp"
 
+#include "acpi/rsdp.hpp"
+#include "acpi/rsdt.hpp"
+
 #include <cstring>
 
 kernel::info INFO = {};
@@ -87,10 +90,8 @@ extern "C" void _start()
 
   INFO.stack.location -= INFO.higher_half_direct_offset;
 
-  INFO.rsdp.location = reinterpret_cast<uintptr_t>(rsdp_request.response->address);
-  INFO.rsdp.size = sizeof(low_level::rsdp);
-  memcpy(&INFO.rsdp.info, rsdp_request.response->address,
-         sizeof(low_level::rsdp));
+  auto rsdp = acpi::rsdp(rsdp_request.response->address);
+  INFO.rsdt = acpi::rsdt(rsdp.rsdt_address);
 
   kmain();
 
